@@ -83,12 +83,17 @@ public class StockServiceClient : IStockServiceClient
                 throw new BusinessRuleException(errorMessage);
             }
 
+            if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+            {
+                throw new ServiceUnavailableException("O microsserviço de Estoque está temporariamente indisponível (HTTP 503 / Simulação de Falha). O Polly executou as tentativas de retry com backoff exponencial e interrompeu a chamada com segurança, mantendo a integridade transacional.");
+            }
+
             throw new BusinessRuleException($"O serviço de estoque retornou erro {(int)response.StatusCode}: {errorMessage}");
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Falha de rede/resiliência ao conectar com o StockService para baixa de estoque.");
-            throw new BusinessRuleException("O serviço de estoque está temporariamente indisponível. A operação foi cancelada com segurança e nenhum saldo foi debitado incorretamente. Tente novamente em instantes.");
+            throw new ServiceUnavailableException("Não foi possível conectar ao microsserviço de Estoque após as tentativas de retry do Polly. A operação foi cancelada com segurança e nenhum saldo foi debitado incorretamente.");
         }
     }
 }

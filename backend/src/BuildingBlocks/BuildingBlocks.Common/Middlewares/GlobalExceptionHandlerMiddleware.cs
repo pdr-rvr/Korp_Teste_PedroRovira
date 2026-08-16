@@ -54,11 +54,9 @@ public class GlobalExceptionHandlerMiddleware
         else
         {
             _logger.LogError(exception, "Exceção não tratada capturada pelo middleware (TraceId: {TraceId})", traceId);
-
-            if (_env.IsDevelopment())
-            {
-                detail = exception.ToString();
-            }
+            detail = !string.IsNullOrWhiteSpace(exception.Message) 
+                ? exception.Message 
+                : "Ocorreu um erro interno inesperado no servidor. O evento foi registrado para auditoria.";
         }
 
         var problemDetails = new ProblemDetails

@@ -118,7 +118,7 @@ public class ProductsController : ControllerBase
     {
         if (_faultState.IsFaultSimulated)
         {
-            throw new HttpRequestException(_faultState.FaultMessage, null, (System.Net.HttpStatusCode)_faultState.FaultStatusCode);
+            throw new BuildingBlocks.Common.Exceptions.ServiceUnavailableException(_faultState.FaultMessage);
         }
     }
 }

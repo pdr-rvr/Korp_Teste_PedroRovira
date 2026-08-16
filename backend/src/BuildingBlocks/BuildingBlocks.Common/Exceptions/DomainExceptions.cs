@@ -56,3 +56,11 @@ public class ValidationException : DomainException
     {
     }
 }
+
+public class ServiceUnavailableException : DomainException
+{
+    public ServiceUnavailableException(string message = "O serviço de estoque está temporariamente indisponível. A operação foi cancelada com segurança.")
+        : base(message, "Serviço Temporariamente Indisponível", 503)
+    {
+    }
+}
