@@ -18,16 +18,18 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
     LoadingSpinnerComponent
   ],
   template: `
-    <app-navbar></app-navbar>
+    <div class="app-layout">
+      <app-navbar></app-navbar>
 
-    <div class="app-container">
-      <app-sidebar></app-sidebar>
+      <div class="app-container">
+        <app-sidebar></app-sidebar>
 
-      <main class="main-content">
-        <div class="page-body">
-          <router-outlet></router-outlet>
-        </div>
-      </main>
+        <main class="main-content">
+          <div class="page-body">
+            <router-outlet></router-outlet>
+          </div>
+        </main>
+      </div>
     </div>
 
     <app-toast-container></app-toast-container>

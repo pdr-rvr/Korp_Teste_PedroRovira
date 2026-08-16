@@ -54,13 +54,14 @@ import { RouterModule } from '@angular/router';
   `,
   styles: [`
     .sidebar {
-      width: 250px;
+      width: 100%;
+      height: 100%;
       background-color: var(--bg-surface);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 64px);
       padding: 1.5rem 1rem;
+      box-sizing: border-box;
     }
 
     .sidebar-menu-label {
