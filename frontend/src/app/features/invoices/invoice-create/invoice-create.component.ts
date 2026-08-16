@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Product } from '../../../core/models/product.model';
 import { InvoiceService } from '../../../core/services/invoice.service';
@@ -74,7 +74,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
         <div class="card-header">
           <div>
             <h3>2. Produtos & Itens da Nota</h3>
-            <p style="font-size: 0.8125rem;">O sistema valida o saldo físico disponível e impede quantidades superiores ou produtos duplicados.</p>
+            <p style="font-size: 0.8125rem;">O preço unitário é fixado conforme o catálogo de estoque. Não é permitida adulteração manual.</p>
           </div>
 
           <button type="button" class="btn btn-outline btn-sm" (click)="addItem()">
@@ -89,7 +89,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
 
               <div class="item-select-col">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.375rem;">
-                  <label class="form-label" style="margin-bottom: 0;">Produto *</label>
+                  <label class="form-label" style="margin-bottom: 0;">Produto do Catálogo *</label>
                   @if (getSelectedProduct(i); as prod) {
                     <span class="stock-badge" [ngClass]="prod.stockQuantity > 0 ? 'stock-ok' : 'stock-zero'">
                       Saldo disponível: {{ prod.stockQuantity }} un
@@ -106,9 +106,9 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
                     >
                       {{ prod.code }} - {{ prod.description }}
                       @if (prod.stockQuantity <= 0) {
-                        (Esgotado)
+                        (Esgotado - Saldo 0)
                       } @else if (isProductAlreadySelectedInOtherRow(prod.code, i)) {
-                        (Já selecionado)
+                        (Já selecionado na nota)
                       } @else {
                         (Saldo: {{ prod.stockQuantity }} un | {{ prod.unitPrice | currency:'BRL' }})
                       }
@@ -126,19 +126,18 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
                   class="form-control"
                   placeholder="1"
                   formControlName="quantity"
+                  (keydown)="onlyPositiveIntegers($event)"
                   (input)="onQuantityChange(i)"
                 />
               </div>
 
+              <!-- Preço Unitário Oficial Travado (Somente Leitura) -->
               <div class="item-price-col">
-                <label class="form-label">Preço Unit. (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  class="form-control"
-                  formControlName="unitPrice"
-                  (input)="calculateTotals()"
-                />
+                <label class="form-label">Preço Unit. (Oficial)</label>
+                <div class="price-display-box">
+                  <span class="price-value">{{ getItemUnitPrice(i) | currency:'BRL':'symbol':'1.2-2' }}</span>
+                  <span class="lock-tag" title="Preço unitário fixado pelo catálogo oficial de produtos">🔒 Tabela</span>
+                </div>
               </div>
 
               <div class="item-subtotal-col">
@@ -218,7 +217,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
 
     .item-row {
       display: grid;
-      grid-template-columns: 40px 3.2fr 1fr 1fr 1.2fr 48px;
+      grid-template-columns: 40px 3.2fr 1fr 1.3fr 1.2fr 48px;
       gap: 0.75rem;
       align-items: flex-end;
       padding: 1rem;
@@ -260,6 +259,32 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
       padding: 0.5rem 1rem;
       border-radius: var(--radius-sm);
       margin-top: -0.5rem;
+    }
+
+    .price-display-box {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.75rem;
+      background: #e2e8f0;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .price-value {
+      font-weight: 700;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+    }
+
+    .lock-tag {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
     }
 
     .subtotal-display {
@@ -365,17 +390,33 @@ export class InvoiceCreateComponent implements OnInit {
         maxStock: product.stockQuantity
       });
 
-      // Validação de quantidade contra o saldo
+      // Se quantidade atual for maior que o saldo, ajusta para o saldo
       const qty = itemGroup.get('quantity')?.value || 1;
-      if (qty > product.stockQuantity) {
-        itemGroup.patchValue({ quantity: Math.max(1, product.stockQuantity) });
+      if (qty > product.stockQuantity && product.stockQuantity > 0) {
+        itemGroup.patchValue({ quantity: product.stockQuantity });
       }
 
       this.calculateTotals();
     }
   }
 
+  public onlyPositiveIntegers(event: KeyboardEvent): void {
+    // Bloquear teclas -, +, e, ., ,
+    if (['-', '+', 'e', 'E', '.', ','].includes(event.key)) {
+      event.preventDefault();
+    }
+  }
+
   public onQuantityChange(index: number): void {
+    const itemGroup = this.items.at(index);
+    if (itemGroup) {
+      let qty = Number(itemGroup.get('quantity')?.value || 1);
+      if (qty < 1) {
+        itemGroup.patchValue({ quantity: 1 }, { emitEvent: false });
+      } else {
+        itemGroup.patchValue({ quantity: Math.floor(qty) }, { emitEvent: false });
+      }
+    }
     this.calculateTotals();
   }
 
@@ -384,6 +425,12 @@ export class InvoiceCreateComponent implements OnInit {
     if (!itemGroup) return undefined;
     const code = itemGroup.get('productCode')?.value;
     return this.availableProducts.find(p => p.code === code);
+  }
+
+  public getItemUnitPrice(index: number): number {
+    const prod = this.getSelectedProduct(index);
+    if (prod) return prod.unitPrice;
+    return Number(this.items.at(index)?.get('unitPrice')?.value || 0);
   }
 
   public isProductAlreadySelectedInOtherRow(productCode: string, currentRowIndex: number): boolean {
@@ -432,7 +479,7 @@ export class InvoiceCreateComponent implements OnInit {
     const itemGroup = this.items.at(index);
     if (!itemGroup) return 0;
     const qty = Number(itemGroup.get('quantity')?.value || 0);
-    const price = Number(itemGroup.get('unitPrice')?.value || 0);
+    const price = this.getItemUnitPrice(index);
     return qty * price;
   }
 
@@ -461,11 +508,11 @@ export class InvoiceCreateComponent implements OnInit {
     this.invoiceService.createInvoice({
       customerName: val.customerName.trim(),
       customerDocument: val.customerDocument ? val.customerDocument.trim() : undefined,
-      items: val.items.map((i: any) => ({
+      items: val.items.map((i: any, index: number) => ({
         productCode: i.productCode,
         productDescription: i.productDescription,
         quantity: Number(i.quantity),
-        unitPrice: Number(i.unitPrice)
+        unitPrice: this.getItemUnitPrice(index)
       }))
     }).subscribe({
       next: (invoice) => {
