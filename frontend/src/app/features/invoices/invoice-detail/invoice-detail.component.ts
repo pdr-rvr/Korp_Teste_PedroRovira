@@ -1,14 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Invoice, InvoiceStatus } from '../../../core/models/invoice.model';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ProductService } from '../../../core/services/product.service';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-invoice-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ConfirmModalComponent],
   template: `
     @if (invoice) {
       <div class="page-header">
@@ -31,7 +33,7 @@ import { NotificationService } from '../../../core/services/notification.service
               type="button"
               class="btn btn-success btn-lg issue-button"
               [disabled]="isProcessing"
-              (click)="onIssueAndPrint()"
+              (click)="openConfirmModal()"
             >
               @if (isProcessing) {
                 <span class="spinner"></span>
@@ -147,6 +149,21 @@ import { NotificationService } from '../../../core/services/notification.service
           </div>
         }
       </div>
+
+      <!-- Modal de Confirmação de Emissão -->
+      @if (showConfirmModal) {
+        <app-confirm-modal
+          title="Confirmar Emissão da Nota Fiscal"
+          [message]="'Deseja realmente emitir e imprimir a Nota Fiscal Nº ' + invoice.number + '?'"
+          subMessage="Esta ação é definitiva: baixará os produtos do estoque no PostgreSQL e alterará o status da nota para Fechada."
+          confirmText="Sim, Emitir Nota"
+          cancelText="Voltar"
+          type="warning"
+          [isConfirming]="isProcessing"
+          (confirmed)="onConfirmedIssue()"
+          (cancelled)="showConfirmModal = false"
+        ></app-confirm-modal>
+      }
     } @else {
       <div class="card text-center py-5">
         <span class="spinner spinner-primary"></span>
@@ -339,10 +356,12 @@ import { NotificationService } from '../../../core/services/notification.service
 export class InvoiceDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private invoiceService = inject(InvoiceService);
+  private productService = inject(ProductService);
   private notificationService = inject(NotificationService);
 
   public invoice: Invoice | null = null;
   public isProcessing = false;
+  public showConfirmModal = false;
   public InvoiceStatus = InvoiceStatus;
 
   public ngOnInit(): void {
@@ -358,7 +377,13 @@ export class InvoiceDetailComponent implements OnInit {
     });
   }
 
-  public onIssueAndPrint(): void {
+  public openConfirmModal(): void {
+    if (this.invoice && this.invoice.status === InvoiceStatus.Aberta) {
+      this.showConfirmModal = true;
+    }
+  }
+
+  public onConfirmedIssue(): void {
     if (!this.invoice || this.invoice.status !== InvoiceStatus.Aberta) return;
 
     this.isProcessing = true;
@@ -368,9 +393,14 @@ export class InvoiceDetailComponent implements OnInit {
         this.notificationService.success(response.message, `Nota #${response.invoice.number} Emitida!`);
         this.invoice = response.invoice;
         this.isProcessing = false;
+        this.showConfirmModal = false;
+
+        // Atualizar estado global do estoque no ProductService
+        this.productService.getProducts().subscribe();
       },
       error: () => {
         this.isProcessing = false;
+        this.showConfirmModal = false;
       }
     });
   }
