@@ -43,9 +43,19 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
               }
             </button>
           } @else {
-            <div class="closed-notice">
-              <span class="lock-icon">🔒</span>
-              <span>Nota Fiscal Fechada e Concluída</span>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <button
+                type="button"
+                class="btn btn-primary"
+                (click)="printDanfe()"
+                title="Imprimir documento auxiliar ou salvar como PDF"
+              >
+                <span>🖨️ Imprimir DANFE (PDF)</span>
+              </button>
+              <div class="closed-notice">
+                <span class="lock-icon">🔒</span>
+                <span>Nota Fiscal Fechada</span>
+              </div>
             </div>
           }
         </div>
@@ -381,6 +391,10 @@ export class InvoiceDetailComponent implements OnInit {
     if (this.invoice && this.invoice.status === InvoiceStatus.Aberta) {
       this.showConfirmModal = true;
     }
+  }
+
+  public printDanfe(): void {
+    window.print();
   }
 
   public onConfirmedIssue(): void {

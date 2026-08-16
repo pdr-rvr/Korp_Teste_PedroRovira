@@ -411,3 +411,63 @@ p {
   border-color: rgba(37, 99, 235, 0.2);
   border-top-color: var(--primary);
 }
+
+/* ==========================================================================
+   ESTILOS DE IMPRESSÃO (@media print) PARA DANFE
+   ========================================================================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Ocultar elementos de layout e navegação que não pertencem ao documento */
+  .app-sidebar,
+  .app-navbar,
+  .back-link,
+  .header-actions,
+  .toast-container,
+  .modal-overlay,
+  .btn,
+  .page-header p {
+    display: none !important;
+  }
+
+  .app-layout {
+    display: block !important;
+  }
+
+  .main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .page-header {
+    margin-bottom: 1rem !important;
+  }
+
+  .danfe-container {
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+    padding: 1.5rem !important;
+    margin: 0 !important;
+    page-break-inside: avoid;
+  }
+
+  .danfe-section-divider {
+    background: #000 !important;
+  }
+
+  .table th {
+    background-color: #f1f5f9 !important;
+    color: #000 !important;
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .table td {
+    border-bottom: 1px solid #ddd !important;
+  }
+}
