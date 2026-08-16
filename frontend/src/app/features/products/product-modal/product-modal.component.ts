@@ -26,9 +26,10 @@ import { ProductService } from '../../../core/services/product.service';
                 class="form-control"
                 placeholder="Ex: PROD-100"
                 formControlName="code"
+                (input)="sanitizeCode()"
               />
               @if (isFieldInvalid('code')) {
-                <div class="form-error">O código do produto é obrigatório (máx 50 caracteres).</div>
+                <div class="form-error">O código do produto é obrigatório (máx 50 caracteres alfanuméricos).</div>
               }
             </div>
 
@@ -69,13 +70,13 @@ import { ProductService } from '../../../core/services/product.service';
                   id="unitPrice"
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   class="form-control"
-                  placeholder="0.00"
+                  placeholder="0.01"
                   formControlName="unitPrice"
                 />
                 @if (isFieldInvalid('unitPrice')) {
-                  <div class="form-error">O preço deve ser maior ou igual a zero.</div>
+                  <div class="form-error">O preço unitário deve ser maior que zero (R$ 0,01).</div>
                 }
               </div>
             </div>
@@ -110,8 +111,16 @@ export class ProductModalComponent {
     code: ['', [Validators.required, Validators.maxLength(50)]],
     description: ['', [Validators.required, Validators.maxLength(255)]],
     stockQuantity: [0, [Validators.required, Validators.min(0)]],
-    unitPrice: [0, [Validators.required, Validators.min(0)]]
+    unitPrice: [100.00, [Validators.required, Validators.min(0.01)]]
   });
+
+  public sanitizeCode(): void {
+    const codeControl = this.productForm.get('code');
+    if (codeControl && codeControl.value) {
+      const sanitized = codeControl.value.toString().toUpperCase().replace(/[^A-Z0-9\-_]/g, '');
+      codeControl.setValue(sanitized, { emitEvent: false });
+    }
+  }
 
   public isFieldInvalid(fieldName: string): boolean {
     const field = this.productForm.get(fieldName);
@@ -134,8 +143,8 @@ export class ProductModalComponent {
     const formValue = this.productForm.value;
 
     this.productService.createProduct({
-      code: formValue.code,
-      description: formValue.description,
+      code: formValue.code.trim().toUpperCase(),
+      description: formValue.description.trim(),
       stockQuantity: Number(formValue.stockQuantity),
       unitPrice: Number(formValue.unitPrice)
     }).subscribe({

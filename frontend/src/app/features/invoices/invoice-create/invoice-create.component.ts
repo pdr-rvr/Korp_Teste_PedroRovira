@@ -1,27 +1,29 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Product } from '../../../core/models/product.model';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ProductService } from '../../../core/services/product.service';
+import { documentValidator } from '../../../core/validators/document.validator';
+import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.directive';
 
 @Component({
   selector: 'app-invoice-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, CpfCnpjMaskDirective],
   template: `
     <div class="page-header">
       <div>
         <a routerLink="/notas-fiscais" class="back-link">← Voltar para Faturamento</a>
         <h1>Nova Nota Fiscal de Venda</h1>
-        <p>Preencha os dados do cliente e selecione múltiplos produtos do estoque.</p>
+        <p>Preencha os dados do cliente e selecione múltiplos produtos do estoque com validações em tempo real.</p>
       </div>
     </div>
 
     <form [formGroup]="invoiceForm" (ngSubmit)="onSubmit()">
-      <!-- Dados do Destinatário -->
+      <!-- 1. Dados do Destinatário -->
       <div class="card mb-4" style="margin-bottom: 1.5rem;">
         <div class="card-header">
           <h3>1. Dados do Destinatário / Cliente</h3>
@@ -38,29 +40,41 @@ import { ProductService } from '../../../core/services/product.service';
               formControlName="customerName"
             />
             @if (isFieldInvalid('customerName')) {
-              <div class="form-error">O nome do cliente é obrigatório.</div>
+              <div class="form-error">O nome do cliente é obrigatório (máx 150 caracteres).</div>
             }
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="customerDocument">CNPJ / CPF</label>
+            <label class="form-label" for="customerDocument">CNPJ ou CPF (com validação)</label>
             <input
               id="customerDocument"
               type="text"
               class="form-control"
-              placeholder="Ex: 00.000.000/0001-00"
+              placeholder="00.000.000/0000-00 ou 000.000.000-00"
               formControlName="customerDocument"
+              appCpfCnpjMask
             />
+            @if (isFieldInvalid('customerDocument')) {
+              <div class="form-error">
+                @if (invoiceForm.get('customerDocument')?.errors?.['invalidCpf']) {
+                  CPF informado possui dígito verificador inválido.
+                } @else if (invoiceForm.get('customerDocument')?.errors?.['invalidCnpj']) {
+                  CNPJ informado possui dígito verificador inválido.
+                } @else {
+                  Documento deve ser um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.
+                }
+              </div>
+            }
           </div>
         </div>
       </div>
 
-      <!-- Itens da Nota Fiscal -->
+      <!-- 2. Itens da Nota Fiscal -->
       <div class="card mb-4" style="margin-bottom: 1.5rem;">
         <div class="card-header">
           <div>
             <h3>2. Produtos & Itens da Nota</h3>
-            <p style="font-size: 0.8125rem;">Selecione os produtos disponíveis no estoque e informe as quantidades.</p>
+            <p style="font-size: 0.8125rem;">O sistema valida o saldo físico disponível e impede quantidades superiores ou produtos duplicados.</p>
           </div>
 
           <button type="button" class="btn btn-outline btn-sm" (click)="addItem()">
@@ -74,12 +88,30 @@ import { ProductService } from '../../../core/services/product.service';
               <div class="item-index">#{{ i + 1 }}</div>
 
               <div class="item-select-col">
-                <label class="form-label">Produto *</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.375rem;">
+                  <label class="form-label" style="margin-bottom: 0;">Produto *</label>
+                  @if (getSelectedProduct(i); as prod) {
+                    <span class="stock-badge" [ngClass]="prod.stockQuantity > 0 ? 'stock-ok' : 'stock-zero'">
+                      Saldo disponível: {{ prod.stockQuantity }} un
+                    </span>
+                  }
+                </div>
+
                 <select class="form-control" formControlName="productCode" (change)="onProductSelect(i)">
                   <option value="">Selecione um produto...</option>
                   @for (prod of availableProducts; track prod.id) {
-                    <option [value]="prod.code">
-                      {{ prod.code }} - {{ prod.description }} (Saldo: {{ prod.stockQuantity }} un | {{ prod.unitPrice | currency:'BRL' }})
+                    <option
+                      [value]="prod.code"
+                      [disabled]="prod.stockQuantity <= 0 || isProductAlreadySelectedInOtherRow(prod.code, i)"
+                    >
+                      {{ prod.code }} - {{ prod.description }}
+                      @if (prod.stockQuantity <= 0) {
+                        (Esgotado)
+                      } @else if (isProductAlreadySelectedInOtherRow(prod.code, i)) {
+                        (Já selecionado)
+                      } @else {
+                        (Saldo: {{ prod.stockQuantity }} un | {{ prod.unitPrice | currency:'BRL' }})
+                      }
                     </option>
                   }
                 </select>
@@ -94,7 +126,7 @@ import { ProductService } from '../../../core/services/product.service';
                   class="form-control"
                   placeholder="1"
                   formControlName="quantity"
-                  (input)="calculateTotals()"
+                  (input)="onQuantityChange(i)"
                 />
               </div>
 
@@ -128,6 +160,13 @@ import { ProductService } from '../../../core/services/product.service';
                 </button>
               </div>
             </div>
+
+            <!-- Alerta de Saldo Insuficiente por Linha -->
+            @if (isQuantityExceeded(i)) {
+              <div class="stock-warning-alert">
+                ⚠️ Atenção: A quantidade informada ({{ getQuantityValue(i) }}) é maior que o saldo disponível em estoque ({{ getMaxStockValue(i) }} un).
+              </div>
+            }
           }
         </div>
 
@@ -142,7 +181,11 @@ import { ProductService } from '../../../core/services/product.service';
       <!-- Ações do Formulário -->
       <div class="form-actions">
         <a routerLink="/notas-fiscais" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-primary btn-lg" [disabled]="invoiceForm.invalid || isSubmitting">
+        <button
+          type="submit"
+          class="btn btn-primary btn-lg"
+          [disabled]="invoiceForm.invalid || hasAnyStockExceeded() || isSubmitting"
+        >
           @if (isSubmitting) {
             <span class="spinner"></span> Gravando Nota...
           } @else {
@@ -175,7 +218,7 @@ import { ProductService } from '../../../core/services/product.service';
 
     .item-row {
       display: grid;
-      grid-template-columns: 40px 3fr 1fr 1fr 1.2fr 48px;
+      grid-template-columns: 40px 3.2fr 1fr 1fr 1.2fr 48px;
       gap: 0.75rem;
       align-items: flex-end;
       padding: 1rem;
@@ -189,6 +232,34 @@ import { ProductService } from '../../../core/services/product.service';
       color: var(--text-muted);
       padding-bottom: 0.75rem;
       text-align: center;
+    }
+
+    .stock-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--radius-full);
+    }
+
+    .stock-ok {
+      background: var(--success-light);
+      color: var(--success-text);
+    }
+
+    .stock-zero {
+      background: var(--danger-light);
+      color: var(--danger-text);
+    }
+
+    .stock-warning-alert {
+      background: var(--danger-light);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--danger-text);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      margin-top: -0.5rem;
     }
 
     .subtotal-display {
@@ -244,7 +315,7 @@ export class InvoiceCreateComponent implements OnInit {
 
   public invoiceForm: FormGroup = this.fb.group({
     customerName: ['', [Validators.required, Validators.maxLength(150)]],
-    customerDocument: [''],
+    customerDocument: ['', [documentValidator()]],
     items: this.fb.array([])
   });
 
@@ -253,7 +324,6 @@ export class InvoiceCreateComponent implements OnInit {
   }
 
   public ngOnInit(): void {
-    // Carregar produtos do estoque para preencher a seleção
     this.productService.getProducts('', 1, 100).subscribe(result => {
       this.availableProducts = result.items;
       if (this.items.length === 0) {
@@ -267,7 +337,8 @@ export class InvoiceCreateComponent implements OnInit {
       productCode: ['', Validators.required],
       productDescription: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1)]],
-      unitPrice: [0, [Validators.required, Validators.min(0)]]
+      unitPrice: [0, [Validators.required, Validators.min(0)]],
+      maxStock: [0]
     });
   }
 
@@ -290,10 +361,71 @@ export class InvoiceCreateComponent implements OnInit {
     if (product) {
       itemGroup.patchValue({
         productDescription: product.description,
-        unitPrice: product.unitPrice
+        unitPrice: product.unitPrice,
+        maxStock: product.stockQuantity
       });
+
+      // Validação de quantidade contra o saldo
+      const qty = itemGroup.get('quantity')?.value || 1;
+      if (qty > product.stockQuantity) {
+        itemGroup.patchValue({ quantity: Math.max(1, product.stockQuantity) });
+      }
+
       this.calculateTotals();
     }
+  }
+
+  public onQuantityChange(index: number): void {
+    this.calculateTotals();
+  }
+
+  public getSelectedProduct(index: number): Product | undefined {
+    const itemGroup = this.items.at(index);
+    if (!itemGroup) return undefined;
+    const code = itemGroup.get('productCode')?.value;
+    return this.availableProducts.find(p => p.code === code);
+  }
+
+  public isProductAlreadySelectedInOtherRow(productCode: string, currentRowIndex: number): boolean {
+    for (let i = 0; i < this.items.length; i++) {
+      if (i !== currentRowIndex) {
+        const itemCode = this.items.at(i).get('productCode')?.value;
+        if (itemCode === productCode) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public isQuantityExceeded(index: number): boolean {
+    const itemGroup = this.items.at(index);
+    if (!itemGroup) return false;
+    const code = itemGroup.get('productCode')?.value;
+    if (!code) return false;
+
+    const prod = this.availableProducts.find(p => p.code === code);
+    if (!prod) return false;
+
+    const qty = Number(itemGroup.get('quantity')?.value || 0);
+    return qty > prod.stockQuantity;
+  }
+
+  public getQuantityValue(index: number): number {
+    return Number(this.items.at(index)?.get('quantity')?.value || 0);
+  }
+
+  public getMaxStockValue(index: number): number {
+    const code = this.items.at(index)?.get('productCode')?.value;
+    const prod = this.availableProducts.find(p => p.code === code);
+    return prod ? prod.stockQuantity : 0;
+  }
+
+  public hasAnyStockExceeded(): boolean {
+    for (let i = 0; i < this.items.length; i++) {
+      if (this.isQuantityExceeded(i)) return true;
+    }
+    return false;
   }
 
   public getItemSubtotal(index: number): number {
@@ -318,7 +450,7 @@ export class InvoiceCreateComponent implements OnInit {
   }
 
   public onSubmit(): void {
-    if (this.invoiceForm.invalid) {
+    if (this.invoiceForm.invalid || this.hasAnyStockExceeded()) {
       this.invoiceForm.markAllAsTouched();
       return;
     }
@@ -327,8 +459,8 @@ export class InvoiceCreateComponent implements OnInit {
     const val = this.invoiceForm.value;
 
     this.invoiceService.createInvoice({
-      customerName: val.customerName,
-      customerDocument: val.customerDocument,
+      customerName: val.customerName.trim(),
+      customerDocument: val.customerDocument ? val.customerDocument.trim() : undefined,
       items: val.items.map((i: any) => ({
         productCode: i.productCode,
         productDescription: i.productDescription,
