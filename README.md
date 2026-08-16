@@ -20,10 +20,10 @@ graph TD
 ```
 
 ### Componentes:
-- **`StockService` (Porta 5001)**: Microsserviço responsável pelo catálogo de produtos, controle de saldos físicos, deduções atômicas de estoque e tratamento de concorrência.
+- **`StockService` (Porta 5001)**: Microsserviço responsável pelo catálogo de produtos, controle de saldos físicos, deduções atômicas de estoque, tratamento de concorrência e simulação de falhas.
 - **`BillingService` (Porta 5002)**: Microsserviço responsável pela geração de notas fiscais com numeração sequencial atômica, comunicação resiliente via **Polly**, fechamento transacional, proteção contra disparos duplicados (**Idempotência**) e motor de auditoria inteligente.
 - **`PostgreSQL 16` (Porta 5432)**: Banco de dados relacional com instâncias/schemas dedicados para cada serviço (`korp_stock_db` e `korp_billing_db`).
-- **`Frontend SPA` (Porta 4200 local / Porta 80 Docker)**: Interface responsiva em Angular 19 com Standalone Components, Signals, formulários reativos e interceptores globais.
+- **`Frontend SPA` (Porta 4200 local / Porta 80 Docker)**: Interface responsiva em Angular 19 com Standalone Components, Signals, formulários reativos, ícones vetoriais SVG e interceptores globais.
 
 ---
 
@@ -34,12 +34,16 @@ graph TD
 - Listagem em tempo real com busca reativa via RxJS (`debounceTime` e `distinctUntilChanged`).
 - Badges visuais indicativos de nível de estoque (Disponível, Estoque Baixo, Esgotado).
 - Baixa atômica de saldo e controle de concorrência otimista (`IsRowVersion`).
+- Endpoints e controles para reset e repovoamento dinâmico do dataset corporativo (`POST /api/products/reset-seed`).
 
 ### 🧾 Faturamento & Emissão de Notas Fiscais
 - Emissão de notas fiscais com numeração sequencial contínua gerada via sequence nativa do PostgreSQL.
 - Suporte a múltiplos produtos por nota com cálculo automático de subtotais e totais em tempo real.
-- Visualização formatada de Documento Auxiliar (DANFE).
+- **Validação de Documentos**: Validação matemática rigorosa de dígitos verificadores de CPF (11 dígitos) e CNPJ (14 dígitos) com máscara dinâmica de entrada.
+- **Integridade de Catálogo**: Preço unitário estritamente vinculado ao catálogo oficial de estoque (somente leitura no front e validado no backend).
+- **Validação em Tempo Real de Saldo**: Alertas e bloqueio de submissão caso a quantidade solicitada exceda o saldo físico disponível.
 - **Emissão/Impressão Segura**: Transição atômica de status (`Aberta` -> `Fechada`) com confirmação de baixa de estoque e bloqueio para notas já fechadas.
+- **Impressão Nativa de DANFE (PDF)**: Suporte completo à impressão em folha A4 com estilos CSS dedicados (`@media print`).
 - **Idempotência (`X-Idempotency-Key`)**: Proteção contra cliques duplos ou reenvios de rede.
 
 ### 🛡️ Resiliência & Simulação de Falhas
@@ -47,7 +51,7 @@ graph TD
 - Painel interativo de simulação para testar a tolerância a falhas e recuperação automática.
 
 ### ⚡ Tratamento de Concorrência
-- Prevenção de condições de corrida em cenários de alta concorrência (ex: duas notas disputando simultaneamente a última unidade de um item).
+- Prevenção de condições de corrida em cenários de alta concorrência (ex: duas notas disputando simultaneamente a última unidade de um item com saldo 1).
 
 ### 🤖 Assistente de Inteligência Artificial & Auditoria
 - Análise preditiva do volume de faturamento, detecção de notas pendentes e sugestões de reposição preventiva de estoque.
@@ -59,7 +63,7 @@ graph TD
 | Camada | Tecnologias / Bibliotecas |
 | :--- | :--- |
 | **Backend** | .NET 8 (C#), ASP.NET Core Web API, Entity Framework Core 8, Npgsql (PostgreSQL), Polly, Swashbuckle (Swagger/OpenAPI), xUnit |
-| **Frontend** | Angular 19 (Standalone Components), TypeScript, RxJS, Reactive Forms, Vanilla CSS Design System |
+| **Frontend** | Angular 19 (Standalone Components), TypeScript, RxJS, Reactive Forms, Vanilla CSS Design System, SVG Icons |
 | **Infraestrutura** | PostgreSQL 16, Docker, Docker Compose, Nginx |
 
 ---
