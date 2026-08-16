@@ -15,8 +15,23 @@ import { SimulationService } from '../../../core/services/simulation.service';
     <div class="page-header">
       <div>
         <h1>Painel de Resiliência, Concorrência & Inteligência Artificial</h1>
-        <p>Ambiente interativo de testes para simulação de falhas (Polly), condições de corrida em concorrência e auditoria inteligente por IA.</p>
+        <p>Ambiente interativo para simulação de falhas (Polly), testes de corrida concorrente e auditoria fiscal inteligente.</p>
       </div>
+
+      <!-- Botão de Repovoar Banco de Dados -->
+      <button
+        type="button"
+        class="btn btn-secondary"
+        [disabled]="isResettingDb"
+        (click)="resetDatabaseData()"
+      >
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        @if (isResettingDb) {
+          <span>Repovoando Banco...</span>
+        } @else {
+          <span>Repovoar / Resetar Banco</span>
+        }
+      </button>
     </div>
 
     <div class="simulator-grid">
@@ -24,10 +39,12 @@ import { SimulationService } from '../../../core/services/simulation.service';
       <div class="card sim-card">
         <div class="card-header">
           <div class="sim-header-title">
-            <span class="sim-icon">🛡️</span>
+            <div class="sim-icon-box">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
             <div>
               <h3>1. Simulação de Falhas & Resiliência (Polly)</h3>
-              <p>Requisito obrigatório do desafio: testar a recuperação de falhas no microsserviço de estoque.</p>
+              <p>Testa a tolerância a falhas na comunicação inter-serviços com Retry e Circuit Breaker.</p>
             </div>
           </div>
         </div>
@@ -36,11 +53,11 @@ import { SimulationService } from '../../../core/services/simulation.service';
           <div class="status-indicator-box" [ngClass]="isFaultActive ? 'box-danger' : 'box-success'">
             <div class="status-title">
               Estado do Microsserviço de Estoque:
-              <strong>{{ isFaultActive ? 'SIMULAÇÃO DE FALHA ATIVA (503)' : 'OPERANDO NORMALMENTE' }}</strong>
+              <strong>{{ isFaultActive ? 'SIMULAÇÃO DE FALHA ATIVA (HTTP 503)' : 'OPERANDO NORMALMENTE' }}</strong>
             </div>
             <p class="status-desc">
               {{ isFaultActive 
-                ? 'As requisições de estoque falharão. O Polly executará 3 tentativas com backoff exponencial antes de exibir mensagem amigável.' 
+                ? 'As requisições de estoque falharão. O Polly executará 3 tentativas com backoff exponencial antes de exibir feedback amigável.' 
                 : 'Todas as requisições REST estão respondendo normalmente com persistência no PostgreSQL.' }}
             </p>
           </div>
@@ -48,11 +65,13 @@ import { SimulationService } from '../../../core/services/simulation.service';
           <div class="sim-controls">
             @if (!isFaultActive) {
               <button type="button" class="btn btn-danger" (click)="toggleFault(true)">
-                ⚠️ Simular Queda / Falha no StockService
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Simular Queda no StockService</span>
               </button>
             } @else {
               <button type="button" class="btn btn-success" (click)="toggleFault(false)">
-                ✓ Restaurar StockService ao Normal
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Restaurar StockService ao Normal</span>
               </button>
             }
           </div>
@@ -63,17 +82,19 @@ import { SimulationService } from '../../../core/services/simulation.service';
       <div class="card sim-card">
         <div class="card-header">
           <div class="sim-header-title">
-            <span class="sim-icon">⚡</span>
+            <div class="sim-icon-box">
+              <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
             <div>
               <h3>2. Teste de Concorrência Simultânea</h3>
-              <p>Requisito opcional: produto com saldo 1 disputado por duas notas fiscais ao mesmo tempo.</p>
+              <p>Disputa paralela pelo produto PROD-005 com saldo físico = 1 unidade.</p>
             </div>
           </div>
         </div>
 
         <div class="sim-body">
           <p class="sim-explanation">
-            Ao clicar no botão abaixo, o sistema criará <strong>2 notas fiscais paralelas</strong> com status <code>Aberta</code> para o item <code>PROD-005</code> (saldo = 1) e disparará a emissão das duas simultaneamente via HTTP.
+            Cria <strong>2 notas fiscais simultâneas</strong> no PostgreSQL para o item <code>PROD-005</code> e dispara o fechamento paralelo imediato para comprovar o bloqueio atômico de corrida.
           </p>
 
           <button
@@ -85,13 +106,14 @@ import { SimulationService } from '../../../core/services/simulation.service';
             @if (isTestingConcurrency) {
               <span class="spinner"></span> Executando Concorrência Paralela...
             } @else {
-              🚀 Disparar 2 Emissões Concorrentes (Saldo 1)
+              <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Disparar 2 Emissões Concorrentes (Saldo 1)</span>
             }
           </button>
 
           @if (concurrencyLogs.length > 0) {
             <div class="terminal-logs">
-              <div class="terminal-header">Log de Execução em Tempo Real:</div>
+              <div class="terminal-header">Log de Execução Transacional:</div>
               @for (log of concurrencyLogs; track $index) {
                 <div class="log-line" [ngClass]="log.type">
                   <span class="log-time">[{{ log.time }}]</span> {{ log.text }}
@@ -104,13 +126,15 @@ import { SimulationService } from '../../../core/services/simulation.service';
     </div>
 
     <!-- 3. Auditoria e Predição com IA -->
-    <div class="card sim-card mt-4" style="margin-top: 1.5rem;">
+    <div class="card sim-card mt-4" style="margin-top: 1.75rem;">
       <div class="card-header">
         <div class="sim-header-title">
-          <span class="sim-icon">🤖</span>
+          <div class="sim-icon-box">
+            <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
           <div>
             <h3>3. Assistente de Inteligência Artificial & Auditoria Fiscal</h3>
-            <p>Requisito opcional: análise preditiva do volume de faturamento, alerta de ruptura de estoque e sugestões fiscais.</p>
+            <p>Análise preditiva de faturamento, monitoramento de ruptura de estoque e sugestões fiscais.</p>
           </div>
         </div>
 
@@ -121,9 +145,10 @@ import { SimulationService } from '../../../core/services/simulation.service';
           (click)="loadAiAudit()"
         >
           @if (isLoadingAi) {
-            <span class="spinner"></span> Analisando...
+            <span class="spinner"></span> Processando...
           } @else {
-            🔄 Executar Auditoria IA
+            <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Executar Auditoria IA</span>
           }
         </button>
       </div>
@@ -137,7 +162,7 @@ import { SimulationService } from '../../../core/services/simulation.service';
 
           <div class="ai-insights-grid">
             <div class="ai-col">
-              <h4>🚨 Alertas Fiscais & Operacionais</h4>
+              <h4>Alertas Fiscais & Operacionais</h4>
               <ul>
                 @for (alert of aiReport.fiscalAlerts; track $index) {
                   <li class="alert-item">{{ alert }}</li>
@@ -146,7 +171,7 @@ import { SimulationService } from '../../../core/services/simulation.service';
             </div>
 
             <div class="ai-col">
-              <h4>📊 Insights Preditivos de Estoque</h4>
+              <h4>Insights Preditivos de Estoque</h4>
               <ul>
                 @for (insight of aiReport.inventoryInsights; track $index) {
                   <li class="insight-item">{{ insight }}</li>
@@ -155,7 +180,7 @@ import { SimulationService } from '../../../core/services/simulation.service';
             </div>
 
             <div class="ai-col">
-              <h4>💡 Recomendações Estratégicas</h4>
+              <h4>Recomendações Estratégicas</h4>
               <ul>
                 @for (rec of aiReport.recommendations; track $index) {
                   <li class="rec-item">{{ rec }}</li>
@@ -172,10 +197,6 @@ import { SimulationService } from '../../../core/services/simulation.service';
     </div>
   `,
   styles: [`
-    .page-header {
-      margin-bottom: 2rem;
-    }
-
     .simulator-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -195,30 +216,39 @@ import { SimulationService } from '../../../core/services/simulation.service';
 
     .sim-header-title {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 0.875rem;
     }
 
-    .sim-icon {
-      font-size: 1.75rem;
-      line-height: 1;
+    .sim-icon-box {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
     .status-indicator-box {
       padding: 1.25rem;
       border-radius: var(--radius-sm);
       margin-bottom: 1.25rem;
+      border: 1px solid transparent;
     }
 
     .box-success {
       background-color: var(--success-light);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-color: var(--success-border);
       color: var(--success-text);
     }
 
     .box-danger {
       background-color: var(--danger-light);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-color: var(--danger-border);
       color: var(--danger-text);
     }
 
@@ -230,7 +260,7 @@ import { SimulationService } from '../../../core/services/simulation.service';
     .status-desc {
       font-size: 0.8125rem;
       color: inherit;
-      opacity: 0.9;
+      opacity: 0.95;
     }
 
     .sim-explanation {
@@ -250,6 +280,7 @@ import { SimulationService } from '../../../core/services/simulation.service';
       font-size: 0.8125rem;
       max-height: 220px;
       overflow-y: auto;
+      border: 1px solid #334155;
     }
 
     .terminal-header {
@@ -275,8 +306,8 @@ import { SimulationService } from '../../../core/services/simulation.service';
     }
 
     .ai-summary-box {
-      background: var(--primary-light);
-      border: 1px solid rgba(37, 99, 235, 0.2);
+      background-color: var(--primary-light);
+      border: 1px solid #bfdbfe;
       border-radius: var(--radius-sm);
       padding: 1rem 1.25rem;
       margin-bottom: 1.5rem;
@@ -315,19 +346,19 @@ import { SimulationService } from '../../../core/services/simulation.service';
     }
 
     .alert-item {
-      background: var(--warning-light);
+      background-color: var(--warning-light);
       border-left: 3px solid var(--warning);
       color: var(--warning-text);
     }
 
     .insight-item {
-      background: var(--info-light);
+      background-color: var(--info-light);
       border-left: 3px solid var(--info);
       color: var(--info-text);
     }
 
     .rec-item {
-      background: var(--success-light);
+      background-color: var(--success-light);
       border-left: 3px solid var(--success);
       color: var(--success-text);
     }
@@ -341,6 +372,7 @@ export class SimulatorDashboardComponent implements OnInit {
 
   public isFaultActive = false;
   public isTestingConcurrency = false;
+  public isResettingDb = false;
   public isLoadingAi = false;
   public aiReport: AiAuditReport | null = null;
   public concurrencyLogs: Array<{ time: string; text: string; type: 'success' | 'error' | 'info' }> = [];
@@ -355,9 +387,7 @@ export class SimulatorDashboardComponent implements OnInit {
       next: (res) => {
         this.isFaultActive = res.isFaultActive;
       },
-      error: () => {
-        // Se der erro de conexão, mantém estado
-      }
+      error: () => {}
     });
   }
 
@@ -374,33 +404,47 @@ export class SimulatorDashboardComponent implements OnInit {
     });
   }
 
+  public resetDatabaseData(): void {
+    this.isResettingDb = true;
+    this.simulationService.resetDatabases().subscribe({
+      next: () => {
+        this.notificationService.success('Bancos de dados de Estoque e Faturamento limpos e repovoados com sucesso!');
+        this.isResettingDb = false;
+        this.productService.getProducts().subscribe();
+        this.loadAiAudit();
+      },
+      error: (err) => {
+        this.notificationService.error(`Erro ao repovoar banco: ${err.message}`);
+        this.isResettingDb = false;
+      }
+    });
+  }
+
   public runConcurrencyTest(): void {
     this.isTestingConcurrency = true;
     this.concurrencyLogs = [];
-    this.addLog('Iniciando teste de concorrência simultânea para o produto PROD-005 (Saldo = 1)...', 'info');
+    this.addLog('Iniciando teste de concorrência simultânea para o item PROD-005 (Saldo = 1)...', 'info');
 
-    // 1. Criar duas requisições de nota fiscal contendo o produto de saldo 1
     const req1: CreateInvoiceRequest = {
       customerName: 'Cliente A (Thread 1 - Disputa Concorrente)',
-      items: [{ productCode: 'PROD-005', productDescription: 'Item Limitado para Teste de Concorrência', quantity: 1, unitPrice: 99.00 }]
+      items: [{ productCode: 'PROD-005', productDescription: 'Roteador Cisco Meraki MX68', quantity: 1, unitPrice: 6800.00 }]
     };
 
     const req2: CreateInvoiceRequest = {
       customerName: 'Cliente B (Thread 2 - Disputa Concorrente)',
-      items: [{ productCode: 'PROD-005', productDescription: 'Item Limitado para Teste de Concorrência', quantity: 1, unitPrice: 99.00 }]
+      items: [{ productCode: 'PROD-005', productDescription: 'Roteador Cisco Meraki MX68', quantity: 1, unitPrice: 6800.00 }]
     };
 
-    this.addLog('Criando Notas Fiscais #1 e #2 com status Aberta no PostgreSQL...', 'info');
+    this.addLog('Criando Notas Fiscais paralelas no PostgreSQL com status Aberta...', 'info');
 
     forkJoin([
       this.invoiceService.createInvoice(req1),
       this.invoiceService.createInvoice(req2)
     ]).subscribe({
       next: ([inv1, inv2]) => {
-        this.addLog(`Notas criadas com sucesso: Nota #${inv1.number} e Nota #${inv2.number}.`, 'info');
-        this.addLog(`Disparando POST /issue simultâneo para ambas as notas concorrendo pelo mesmo saldo 1...`, 'info');
+        this.addLog(`Notas geradas: Nota #${inv1.number} e Nota #${inv2.number}.`, 'info');
+        this.addLog(`Disparando POST /issue simultâneo concorrendo pelo saldo 1...`, 'info');
 
-        // Disparar emissão simultânea das duas notas
         let completed = 0;
 
         this.invoiceService.issueInvoice(inv1.id).subscribe({

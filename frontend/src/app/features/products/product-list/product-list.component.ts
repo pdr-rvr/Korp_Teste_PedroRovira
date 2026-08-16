@@ -14,11 +14,12 @@ import { ProductModalComponent } from '../product-modal/product-modal.component'
     <div class="page-header">
       <div>
         <h1>Controle de Estoque & Produtos</h1>
-        <p>Gerencie o catálogo de produtos, monitore saldos e cadastre novos itens.</p>
+        <p>Catálogo de produtos empresariais, monitoramento de saldos físicos e cadastro de novos itens.</p>
       </div>
 
       <button type="button" class="btn btn-primary" (click)="openCreateModal()">
-        <span>+ Novo Produto</span>
+        <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Novo Produto</span>
       </button>
     </div>
 
@@ -26,11 +27,11 @@ import { ProductModalComponent } from '../product-modal/product-modal.component'
     <div class="card mb-4" style="margin-bottom: 1.5rem;">
       <div class="search-bar">
         <div class="search-input-wrapper">
-          <span class="search-icon">🔍</span>
+          <svg class="svg-icon search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input
             type="text"
             class="form-control search-input"
-            placeholder="Buscar por código (SKU) ou descrição (RxJS debounceTime)..."
+            placeholder="Buscar por código (SKU) ou descrição do produto..."
             [formControl]="searchControl"
           />
           @if (searchControl.value) {
@@ -41,137 +42,131 @@ import { ProductModalComponent } from '../product-modal/product-modal.component'
     </div>
 
     <!-- Tabela de Produtos -->
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Código (SKU)</th>
-            <th>Descrição</th>
-            <th>Preço Unitário</th>
-            <th>Saldo em Estoque</th>
-            <th>Status do Saldo</th>
-            <th>Cadastrado em</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (product of products; track product.id) {
+    <div class="card table-card">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
             <tr>
-              <td>
-                <strong class="sku-tag">{{ product.code }}</strong>
-              </td>
-              <td>{{ product.description }}</td>
-              <td>{{ product.unitPrice | currency:'BRL':'symbol':'1.2-2' }}</td>
-              <td>
-                <span class="stock-value" [ngClass]="{'stock-zero': product.stockQuantity === 0}">
-                  {{ product.stockQuantity | number:'1.0-2' }} un
-                </span>
-              </td>
-              <td>
-                @if (product.stockQuantity === 0) {
-                  <span class="badge badge-danger">Esgotado</span>
-                } @else if (product.stockQuantity <= 3) {
-                  <span class="badge badge-warning">Estoque Baixo</span>
-                } @else {
-                  <span class="badge badge-success">Disponível</span>
-                }
-              </td>
-              <td>{{ product.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              <th>Código (SKU)</th>
+              <th>Descrição do Produto</th>
+              <th>Preço Unitário</th>
+              <th>Saldo em Estoque</th>
+              <th>Status do Saldo</th>
+              <th>Cadastrado em</th>
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="6" class="text-center py-5">
-                <div class="empty-state">
-                  <span class="empty-icon">📦</span>
-                  <h4>Nenhum produto encontrado</h4>
-                  <p>Cadastre um novo produto ou ajuste os termos de busca.</p>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @if (products.length === 0) {
+              <tr>
+                <td colspan="6" class="text-center py-5">
+                  <p>Nenhum produto encontrado no catálogo de estoque.</p>
+                </td>
+              </tr>
+            } @else {
+              @for (product of products; track product.id) {
+                <tr>
+                  <td>
+                    <strong class="sku-tag">{{ product.code }}</strong>
+                  </td>
+                  <td>
+                    <div class="prod-desc">{{ product.description }}</div>
+                  </td>
+                  <td>
+                    <strong class="prod-price">{{ product.unitPrice | currency:'BRL':'symbol':'1.2-2' }}</strong>
+                  </td>
+                  <td>
+                    <span class="stock-qty">{{ product.stockQuantity | number:'1.0-2' }} un</span>
+                  </td>
+                  <td>
+                    @if (product.stockQuantity === 0) {
+                      <span class="badge badge-danger">Esgotado</span>
+                    } @else if (product.stockQuantity <= 3) {
+                      <span class="badge badge-warning">Estoque Baixo</span>
+                    } @else {
+                      <span class="badge badge-success">Disponível</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="created-date">{{ product.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Modal de Cadastro -->
-    @if (isModalOpen) {
+    <!-- Modal de Cadastro de Produto -->
+    @if (isCreateModalOpen) {
       <app-product-modal
-        (close)="isModalOpen = false"
+        (close)="isCreateModalOpen = false"
         (saved)="loadProducts()"
       ></app-product-modal>
     }
   `,
   styles: [`
-    .page-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.75rem;
-    }
-
-    .search-bar {
-      display: flex;
-      gap: 1rem;
-    }
-
     .search-input-wrapper {
       position: relative;
-      flex: 1;
-      display: flex;
-      align-items: center;
+      width: 100%;
     }
 
     .search-icon {
       position: absolute;
-      left: 1rem;
+      left: 0.875rem;
+      top: 50%;
+      transform: translateY(-50%);
       color: var(--text-muted);
       pointer-events: none;
+      width: 1rem;
+      height: 1rem;
     }
 
     .search-input {
-      padding-left: 2.75rem;
-      padding-right: 2.5rem;
-      height: 46px;
-      font-size: 0.9375rem;
+      padding-left: 2.5rem;
+      padding-right: 2.25rem;
     }
 
     .search-clear {
       position: absolute;
-      right: 1rem;
-      background: transparent;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
       border: none;
       color: var(--text-muted);
-      cursor: pointer;
       font-size: 0.875rem;
+      cursor: pointer;
+      padding: 0.25rem;
     }
 
     .sku-tag {
       font-family: monospace;
       font-size: 0.875rem;
-      background: var(--bg-subtle);
-      padding: 0.2rem 0.5rem;
-      border-radius: var(--radius-sm);
+      background-color: var(--bg-subtle);
       border: 1px solid var(--border-color);
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-xs);
       color: var(--primary-dark);
     }
 
-    .stock-value {
+    .prod-desc {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .prod-price {
+      color: var(--text-primary);
+    }
+
+    .stock-qty {
       font-weight: 700;
-      font-size: 0.9375rem;
+      color: var(--text-primary);
     }
 
-    .stock-zero {
-      color: var(--danger);
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-    }
-
-    .empty-icon {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-      display: inline-block;
+    .created-date {
+      color: var(--text-muted);
+      font-size: 0.8125rem;
     }
   `]
 })
@@ -180,40 +175,34 @@ export class ProductListComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   public products: Product[] = [];
-  public isModalOpen = false;
   public searchControl = new FormControl('');
+  public isCreateModalOpen = false;
 
-  // Angular Lifecycle Hook: OnInit
   public ngOnInit(): void {
     this.loadProducts();
 
-    // RxJS: Busca reativa com debounceTime e distinctUntilChanged
-    this.searchControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
-      .subscribe(query => {
-        this.loadProducts(query || '');
+    // Busca reativa com RxJS debounceTime(300) e distinctUntilChanged()
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(term => {
+      this.productService.getProducts(term || '', 1, 50).subscribe(result => {
+        this.products = result.items;
       });
-
-    // Assinar ao BehaviorSubject de produtos para atualizações em tempo real
-    this.productService.products$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(items => {
-        this.products = items;
-      });
+    });
   }
 
-  // Angular Lifecycle Hook: OnDestroy (libera inscrições de memória)
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  public loadProducts(search: string = ''): void {
-    this.productService.getProducts(search).subscribe();
+  public loadProducts(): void {
+    const term = this.searchControl.value || '';
+    this.productService.getProducts(term, 1, 50).subscribe(result => {
+      this.products = result.items;
+    });
   }
 
   public clearSearch(): void {
@@ -221,6 +210,6 @@ export class ProductListComponent implements OnInit, OnDestroy {
   }
 
   public openCreateModal(): void {
-    this.isModalOpen = true;
+    this.isCreateModalOpen = true;
   }
 }

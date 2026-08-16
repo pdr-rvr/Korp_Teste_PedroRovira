@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { Invoice, InvoiceStatus } from '../../../core/models/invoice.model';
 import { InvoiceService } from '../../../core/services/invoice.service';
@@ -20,9 +20,11 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
         <p>Emissão, consulta e acompanhamento de status fiscal com baixa integrada de estoque.</p>
       </div>
 
-      <a routerLink="/notas-fiscais/nova" class="btn btn-primary">
-        <span>+ Nova Nota Fiscal</span>
-      </a>
+      <!-- Botão Padronizado com o mesmo elemento button e ícone do Novo Produto -->
+      <button type="button" class="btn btn-primary" (click)="navigateToCreate()">
+        <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Nova Nota Fiscal</span>
+      </button>
     </div>
 
     <!-- Filtros e Busca Reativa com RxJS -->
@@ -30,7 +32,7 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
       <div class="filters-row">
         <!-- Campo de Busca Reativo (RxJS debounceTime) -->
         <div class="search-input-wrapper">
-          <span class="search-icon">🔍</span>
+          <svg class="svg-icon search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input
             type="text"
             class="form-control search-input"
@@ -79,13 +81,13 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
         <table class="table">
           <thead>
             <tr>
-              <th>Nº NOTA</th>
-              <th>DATA DE CRIAÇÃO</th>
-              <th>CLIENTE / DESTINATÁRIO</th>
-              <th>QTD. ITENS</th>
-              <th>VALOR TOTAL</th>
-              <th>STATUS FISCAL</th>
-              <th style="text-align: right;">AÇÕES</th>
+              <th>Nº Nota</th>
+              <th>Data de Criação</th>
+              <th>Cliente / Razão Social</th>
+              <th>Qtd. Itens</th>
+              <th>Valor Total</th>
+              <th>Status Fiscal</th>
+              <th style="text-align: right;">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -99,20 +101,20 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
               @for (inv of invoices; track inv.id) {
                 <tr>
                   <td>
-                    <strong style="font-size: 1.05rem; font-family: monospace; color: var(--primary-dark);">#{{ inv.number }}</strong>
+                    <strong class="invoice-number-tag">#{{ inv.number }}</strong>
                   </td>
                   <td>
-                    {{ inv.issueDate | date:'dd/MM/yyyy HH:mm' }}
+                    <span class="invoice-date">{{ inv.issueDate | date:'dd/MM/yyyy HH:mm' }}</span>
                   </td>
                   <td>
-                    <div><strong>{{ inv.customerName }}</strong></div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ inv.customerDocument || 'Sem CPF/CNPJ' }}</div>
+                    <div class="customer-name">{{ inv.customerName }}</div>
+                    <div class="customer-doc">{{ inv.customerDocument || 'Sem CPF/CNPJ informado' }}</div>
                   </td>
                   <td>
                     <span class="badge badge-info">{{ inv.items.length }} {{ inv.items.length === 1 ? 'item' : 'itens' }}</span>
                   </td>
                   <td>
-                    <strong style="color: var(--primary-dark);">{{ inv.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</strong>
+                    <strong class="invoice-total">{{ inv.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</strong>
                   </td>
                   <td>
                     @if (inv.status === InvoiceStatus.Aberta) {
@@ -122,7 +124,7 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
                     }
                   </td>
                   <td style="text-align: right;">
-                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <div class="action-buttons-cell">
                       <a [routerLink]="['/notas-fiscais', inv.id]" class="btn btn-outline btn-sm">
                         Visualizar DANFE
                       </a>
@@ -133,7 +135,7 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
                           class="btn btn-success btn-sm"
                           [disabled]="isIssuingId === inv.id"
                           (click)="openIssueConfirm(inv)"
-                          title="Emitir/Imprimir Nota Fiscal e baixar estoque"
+                          title="Emitir Nota Fiscal e debitar estoque"
                         >
                           @if (isIssuingId === inv.id) {
                             <span class="spinner"></span>
@@ -187,9 +189,10 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
       left: 0.875rem;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 0.9375rem;
       color: var(--text-muted);
       pointer-events: none;
+      width: 1rem;
+      height: 1rem;
     }
 
     .search-input {
@@ -224,12 +227,48 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
       color: var(--text-secondary);
       margin-right: 0.25rem;
     }
+
+    .invoice-number-tag {
+      font-family: monospace;
+      font-size: 0.9375rem;
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-xs);
+      color: var(--primary);
+    }
+
+    .invoice-date {
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+    }
+
+    .customer-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .customer-doc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .invoice-total {
+      color: var(--text-primary);
+    }
+
+    .action-buttons-cell {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
   `]
 })
 export class InvoiceListComponent implements OnInit, OnDestroy {
   private invoiceService = inject(InvoiceService);
   private productService = inject(ProductService);
   private notificationService = inject(NotificationService);
+  private router = inject(Router);
   private destroy$ = new Subject<void>();
 
   public invoices: Invoice[] = [];
@@ -242,7 +281,6 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
   public ngOnInit(): void {
     this.loadInvoices();
 
-    // Busca reativa com RxJS debounceTime
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -271,6 +309,10 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
 
   public clearSearch(): void {
     this.searchControl.setValue('');
+  }
+
+  public navigateToCreate(): void {
+    this.router.navigate(['/notas-fiscais/nova']);
   }
 
   public openIssueConfirm(invoice: Invoice): void {

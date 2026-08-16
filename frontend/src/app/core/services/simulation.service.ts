@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AiAuditReport } from '../models/invoice.model';
 
@@ -37,5 +37,12 @@ export class SimulationService {
 
   public getAiAuditReport(): Observable<AiAuditReport> {
     return this.http.get<AiAuditReport>(`${this.billingUrl}/ai-audit`);
+  }
+
+  public resetDatabases(): Observable<[any, any]> {
+    return forkJoin([
+      this.http.post(`${this.stockUrl}/reset-seed`, {}),
+      this.http.post(`${this.billingUrl}/reset-seed`, {})
+    ]);
   }
 }

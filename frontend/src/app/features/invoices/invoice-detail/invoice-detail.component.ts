@@ -15,7 +15,10 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
     @if (invoice) {
       <div class="page-header">
         <div>
-          <a routerLink="/notas-fiscais" class="back-link">← Voltar para Faturamento</a>
+          <a routerLink="/notas-fiscais" class="back-link">
+            <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>Voltar para Faturamento</span>
+          </a>
           <div class="title-with-badge">
             <h1>Nota Fiscal Nº #{{ invoice.number }}</h1>
             @if (invoice.status === InvoiceStatus.Aberta) {
@@ -27,7 +30,6 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
         </div>
 
         <div class="header-actions">
-          <!-- Botão de Impressão / Emissão Obrigatório conforme especificação do PDF -->
           @if (invoice.status === InvoiceStatus.Aberta) {
             <button
               type="button"
@@ -39,21 +41,23 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
                 <span class="spinner"></span>
                 <span>Processando Emissão & Estoque...</span>
               } @else {
-                <span>🖨️ IMPRIMIR / EMITIR NOTA FISCAL</span>
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                <span>EMITIR / IMPRIMIR NOTA FISCAL</span>
               }
             </button>
           } @else {
-            <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <div class="closed-actions-group">
               <button
                 type="button"
                 class="btn btn-primary"
                 (click)="printDanfe()"
                 title="Imprimir documento auxiliar ou salvar como PDF"
               >
-                <span>🖨️ Imprimir DANFE (PDF)</span>
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                <span>Imprimir DANFE (PDF)</span>
               </button>
               <div class="closed-notice">
-                <span class="lock-icon">🔒</span>
+                <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 <span>Nota Fiscal Fechada</span>
               </div>
             </div>
@@ -67,7 +71,7 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
           <div class="danfe-company">
             <h2>KORP ERP / VIASOFT</h2>
             <p>Sistema Integrado de Gestão Empresarial</p>
-            <p>Emissão de Documento Auxiliar da Nota Fiscal</p>
+            <p>Documento Auxiliar da Nota Fiscal Eletrônica (DANFE)</p>
           </div>
 
           <div class="danfe-meta">
@@ -119,7 +123,7 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
             <table class="table">
               <thead>
                 <tr>
-                  <th>CÓD. PROD</th>
+                  <th>CÓD. PROD (SKU)</th>
                   <th>DESCRIÇÃO DO PRODUTO</th>
                   <th>QTD</th>
                   <th>VALOR UNIT.</th>
@@ -129,11 +133,11 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
               <tbody>
                 @for (item of invoice.items; track item.id) {
                   <tr>
-                    <td><code>{{ item.productCode }}</code></td>
-                    <td>{{ item.productDescription }}</td>
+                    <td><code class="sku-tag">{{ item.productCode }}</code></td>
+                    <td><strong style="color: var(--text-primary);">{{ item.productDescription }}</strong></td>
                     <td><strong>{{ item.quantity | number:'1.0-2' }} un</strong></td>
                     <td>{{ item.unitPrice | currency:'BRL':'symbol':'1.2-2' }}</td>
-                    <td><strong>{{ item.subtotal | currency:'BRL':'symbol':'1.2-2' }}</strong></td>
+                    <td><strong style="color: var(--primary);">{{ item.subtotal | currency:'BRL':'symbol':'1.2-2' }}</strong></td>
                   </tr>
                 }
               </tbody>
@@ -155,7 +159,8 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
 
         @if (invoice.status === InvoiceStatus.Fechada) {
           <div class="audit-stamp">
-            <span>✓ AUTENTICAÇÃO FISCAL: OPERAÇÃO ATÔMICA REALIZADA COM SUCESSO</span>
+            <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>AUTENTICAÇÃO FISCAL: OPERAÇÃO ATÔMICA REALIZADA COM SUCESSO (ESTOQUE BAIXADO)</span>
           </div>
         }
       </div>
@@ -186,13 +191,15 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
       flex-wrap: wrap;
       gap: 1rem;
     }
 
     .back-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
       margin-bottom: 0.5rem;
       color: var(--primary);
       text-decoration: none;
@@ -200,49 +207,57 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
       font-size: 0.875rem;
     }
 
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
     .title-with-badge {
       display: flex;
       align-items: center;
       gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .badge-lg {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       padding: 0.35rem 0.85rem;
     }
 
-    .issue-button {
-      background: linear-gradient(135deg, #10b981, #059669);
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-      letter-spacing: 0.02em;
+    .closed-actions-group {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
     }
 
     .closed-notice {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      background: var(--bg-subtle);
-      padding: 0.625rem 1.25rem;
+      gap: 0.4rem;
+      background-color: var(--bg-subtle);
+      padding: 0.5rem 1rem;
       border-radius: var(--radius-sm);
       color: var(--text-secondary);
       font-weight: 600;
+      font-size: 0.8125rem;
       border: 1px solid var(--border-color);
     }
 
     .danfe-container {
       background: #ffffff;
-      padding: 2rem;
+      padding: 2.25rem;
     }
 
     .danfe-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
     }
 
     .danfe-company h2 {
       font-size: 1.5rem;
-      color: var(--secondary);
+      color: var(--primary-dark);
     }
 
     .danfe-company p {
@@ -258,22 +273,23 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
     .meta-box {
       border: 2px solid var(--border-color);
       border-radius: var(--radius-sm);
-      padding: 0.5rem 1rem;
+      padding: 0.5rem 1.25rem;
       text-align: center;
-      min-width: 110px;
+      min-width: 120px;
+      background-color: var(--bg-subtle);
     }
 
     .meta-title {
       display: block;
       font-size: 0.6875rem;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text-muted);
     }
 
     .meta-number {
       font-size: 1.35rem;
       font-weight: 800;
-      color: var(--primary-dark);
+      color: var(--primary);
       font-family: monospace;
     }
 
@@ -284,14 +300,14 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
 
     .danfe-section-divider {
       height: 1px;
-      background: var(--border-color);
+      background-color: var(--border-color);
       margin: 1.5rem 0;
     }
 
     .section-title {
       font-size: 0.75rem;
       font-weight: 800;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       color: var(--text-secondary);
       margin-bottom: 0.75rem;
       text-transform: uppercase;
@@ -300,10 +316,11 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      background: var(--bg-subtle);
-      padding: 1rem;
+      gap: 1.25rem;
+      background-color: var(--bg-subtle);
+      padding: 1.25rem;
       border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
     }
 
     .info-label {
@@ -319,13 +336,22 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
       color: var(--text-primary);
     }
 
+    .sku-tag {
+      font-family: monospace;
+      font-size: 0.8125rem;
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      padding: 0.15rem 0.4rem;
+      border-radius: var(--radius-xs);
+    }
+
     .danfe-total-box {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       gap: 0.5rem;
       margin-top: 1.5rem;
-      padding-top: 1rem;
+      padding-top: 1.25rem;
       border-top: 2px solid var(--border-color);
     }
 
@@ -347,19 +373,22 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
     .highlight-price {
       font-size: 1.75rem;
       font-weight: 800;
-      color: var(--success-text);
+      color: var(--primary);
     }
 
     .audit-stamp {
       margin-top: 1.5rem;
-      background: var(--success-light);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background-color: var(--success-light);
+      border: 1px solid var(--success-border);
       padding: 0.75rem 1rem;
       border-radius: var(--radius-sm);
       color: var(--success-text);
       font-weight: 700;
       font-size: 0.8125rem;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
   `]
 })
@@ -409,7 +438,6 @@ export class InvoiceDetailComponent implements OnInit {
         this.isProcessing = false;
         this.showConfirmModal = false;
 
-        // Atualizar estado global do estoque no ProductService
         this.productService.getProducts().subscribe();
       },
       error: () => {

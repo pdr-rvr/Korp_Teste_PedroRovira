@@ -16,7 +16,10 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
   template: `
     <div class="page-header">
       <div>
-        <a routerLink="/notas-fiscais" class="back-link">← Voltar para Faturamento</a>
+        <a routerLink="/notas-fiscais" class="back-link">
+          <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <span>Voltar para Faturamento</span>
+        </a>
         <h1>Nova Nota Fiscal de Venda</h1>
         <p>Preencha os dados do cliente e selecione múltiplos produtos do estoque com validações em tempo real.</p>
       </div>
@@ -78,7 +81,8 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
           </div>
 
           <button type="button" class="btn btn-outline btn-sm" (click)="addItem()">
-            <span>+ Adicionar Outro Produto</span>
+            <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Adicionar Outro Produto</span>
           </button>
         </div>
 
@@ -136,7 +140,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
                 <label class="form-label">Preço Unit. (Oficial)</label>
                 <div class="price-display-box">
                   <span class="price-value">{{ getItemUnitPrice(i) | currency:'BRL':'symbol':'1.2-2' }}</span>
-                  <span class="lock-tag" title="Preço unitário fixado pelo catálogo oficial de produtos">🔒 Tabela</span>
+                  <span class="lock-tag" title="Preço unitário fixado pelo catálogo oficial de produtos">Tabela Oficial</span>
                 </div>
               </div>
 
@@ -150,7 +154,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
               <div class="item-action-col">
                 <button
                   type="button"
-                  class="btn btn-danger btn-sm"
+                  class="btn btn-danger btn-sm btn-icon"
                   [disabled]="items.length === 1"
                   (click)="removeItem(i)"
                   title="Remover item"
@@ -163,7 +167,8 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
             <!-- Alerta de Saldo Insuficiente por Linha -->
             @if (isQuantityExceeded(i)) {
               <div class="stock-warning-alert">
-                ⚠️ Atenção: A quantidade informada ({{ getQuantityValue(i) }}) é maior que o saldo disponível em estoque ({{ getMaxStockValue(i) }} un).
+                <svg class="svg-icon" style="width: 14px; height: 14px; color: var(--danger);" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Atenção: A quantidade informada ({{ getQuantityValue(i) }}) é maior que o saldo disponível em estoque ({{ getMaxStockValue(i) }} un).</span>
               </div>
             }
           }
@@ -200,12 +205,18 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
     }
 
     .back-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
       margin-bottom: 0.5rem;
       color: var(--primary);
       text-decoration: none;
       font-weight: 600;
       font-size: 0.875rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
     }
 
     .items-list {
@@ -217,7 +228,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
 
     .item-row {
       display: grid;
-      grid-template-columns: 40px 3.2fr 1fr 1.3fr 1.2fr 48px;
+      grid-template-columns: 40px 3.2fr 1fr 1.35fr 1.2fr 40px;
       gap: 0.75rem;
       align-items: flex-end;
       padding: 1rem;
@@ -238,27 +249,33 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
       font-weight: 700;
       padding: 0.15rem 0.5rem;
       border-radius: var(--radius-full);
+      border: 1px solid transparent;
     }
 
     .stock-ok {
       background: var(--success-light);
       color: var(--success-text);
+      border-color: var(--success-border);
     }
 
     .stock-zero {
       background: var(--danger-light);
       color: var(--danger-text);
+      border-color: var(--danger-border);
     }
 
     .stock-warning-alert {
       background: var(--danger-light);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      border: 1px solid var(--danger-border);
       color: var(--danger-text);
       font-size: 0.8125rem;
       font-weight: 600;
       padding: 0.5rem 1rem;
       border-radius: var(--radius-sm);
       margin-top: -0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .price-display-box {
@@ -281,9 +298,9 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
     .lock-tag {
       font-size: 0.6875rem;
       font-weight: 700;
-      color: var(--text-muted);
-      background: rgba(0, 0, 0, 0.05);
-      padding: 0.1rem 0.35rem;
+      color: var(--text-secondary);
+      background: rgba(0, 0, 0, 0.06);
+      padding: 0.15rem 0.4rem;
       border-radius: 4px;
     }
 
@@ -316,7 +333,7 @@ import { CpfCnpjMaskDirective } from '../../../shared/directives/cpf-cnpj-mask.d
     .total-value-highlight {
       font-size: 1.5rem;
       font-weight: 800;
-      color: var(--primary-dark);
+      color: var(--primary);
     }
 
     .form-actions {
@@ -390,7 +407,6 @@ export class InvoiceCreateComponent implements OnInit {
         maxStock: product.stockQuantity
       });
 
-      // Se quantidade atual for maior que o saldo, ajusta para o saldo
       const qty = itemGroup.get('quantity')?.value || 1;
       if (qty > product.stockQuantity && product.stockQuantity > 0) {
         itemGroup.patchValue({ quantity: product.stockQuantity });
@@ -401,7 +417,6 @@ export class InvoiceCreateComponent implements OnInit {
   }
 
   public onlyPositiveIntegers(event: KeyboardEvent): void {
-    // Bloquear teclas -, +, e, ., ,
     if (['-', '+', 'e', 'E', '.', ','].includes(event.key)) {
       event.preventDefault();
     }
