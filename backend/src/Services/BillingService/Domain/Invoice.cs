@@ -26,6 +26,11 @@ public class Invoice
         if (string.IsNullOrWhiteSpace(customerName))
             throw new ValidationException(nameof(CustomerName), "O nome do cliente/destinatário é obrigatório.");
 
+        if (!string.IsNullOrWhiteSpace(customerDocument) && !BuildingBlocks.Common.Validators.DocumentValidator.IsValidDocument(customerDocument))
+        {
+            throw new ValidationException(nameof(CustomerDocument), "O CPF ou CNPJ informado para o cliente é inválido.");
+        }
+
         var itemList = items?.ToList() ?? new List<InvoiceItem>();
         if (!itemList.Any())
             throw new ValidationException("Items", "A nota fiscal deve conter pelo menos um produto/item.");

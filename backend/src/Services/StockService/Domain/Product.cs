@@ -93,9 +93,9 @@ public class Product
             errors.Add(nameof(StockQuantity), new[] { "O saldo em estoque não pode ser negativo." });
         }
 
-        if (unitPrice < 0)
+        if (unitPrice <= 0)
         {
-            errors.Add(nameof(UnitPrice), new[] { "O preço unitário não pode ser negativo." });
+            errors.Add(nameof(UnitPrice), new[] { "O preço unitário do produto deve ser maior que zero." });
         }
 
         if (errors.Any())

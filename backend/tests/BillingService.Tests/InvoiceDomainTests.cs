@@ -36,6 +36,29 @@ public class InvoiceDomainTests
     }
 
     [Fact]
+    public void CreateInvoice_WithInvalidCpf_ShouldThrowValidationException()
+    {
+        // Arrange
+        var items = new List<InvoiceItem> { new("PROD-1", "Item", 1, 50m) };
+
+        // Act & Assert (CPF com dígitos repetidos)
+        Assert.Throws<ValidationException>(() => new Invoice("Cliente", "111.111.111-11", items));
+        // CPF com tamanho ou dígito verificador incorreto
+        Assert.Throws<ValidationException>(() => new Invoice("Cliente", "123.456.789-00", items));
+    }
+
+    [Fact]
+    public void CreateInvoice_WithValidCpfOrCnpj_ShouldSucceed()
+    {
+        // Arrange
+        var items = new List<InvoiceItem> { new("PROD-1", "Item", 1, 50m) };
+
+        // Act & Assert (CNPJ válido padrão Viasoft/Alpha)
+        var invoice = new Invoice("Cliente", "12.345.678/0001-90", items);
+        Assert.NotNull(invoice);
+    }
+
+    [Fact]
     public void CloseAndIssue_WhenOpen_ShouldTransitionToClosedAndSetIssuedDate()
     {
         // Arrange
