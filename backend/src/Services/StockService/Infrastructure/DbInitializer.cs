@@ -15,31 +15,43 @@ public static class DbInitializer
 
         try
         {
-            // Aplica migrações ou cria banco se não existir
             await context.Database.EnsureCreatedAsync();
 
             if (!await context.Products.AnyAsync())
             {
-                logger.LogInformation("Populando banco de dados de Estoque com produtos iniciais de exemplo...");
-
-                var initialProducts = new List<Product>
-                {
-                    new Product("PROD-001", "Notebook Dell Vostro 15 3520 (Intel i5, 16GB RAM)", 15, 3499.00m),
-                    new Product("PROD-002", "Monitor LG UltraWide 29\" IPS Full HD", 8, 1150.00m),
-                    new Product("PROD-003", "Teclado Mecânico Logitech G Pro Switch GX Blue", 25, 489.90m),
-                    new Product("PROD-004", "Mouse Sem Fio Logitech MX Master 3S", 12, 599.00m),
-                    new Product("PROD-005", "Item Limitado para Teste de Concorrência", 1, 99.00m) // Produto com saldo 1 exigido no teste!
-                };
-
-                await context.Products.AddRangeAsync(initialProducts);
-                await context.SaveChangesAsync();
-
-                logger.LogInformation("Produtos iniciais cadastrados com sucesso.");
+                logger.LogInformation("Populando banco de dados de Estoque com dataset corporativo...");
+                await SeedProductsAsync(context);
+                logger.LogInformation("Dataset corporativo de produtos cadastrado com sucesso.");
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Erro ao inicializar o banco de dados do StockService.");
         }
+    }
+
+    public static async Task ResetAndSeedAsync(StockDbContext context)
+    {
+        context.Products.RemoveRange(context.Products);
+        await context.SaveChangesAsync();
+        await SeedProductsAsync(context);
+    }
+
+    private static async Task SeedProductsAsync(StockDbContext context)
+    {
+        var initialProducts = new List<Product>
+        {
+            new Product("PROD-001", "Notebook Corporativo Dell Latitude 5440 (Intel Core i7, 32GB RAM, SSD 1TB NVMe)", 20, 5490.00m),
+            new Product("PROD-002", "Monitor Profissional Dell UltraSharp 27\" 4K USB-C Hub (U2723QE)", 14, 3890.00m),
+            new Product("PROD-003", "Servidor Rack Dell PowerEdge R450 (Xeon Silver 4314, 64GB ECC, 2x 960GB SSD)", 4, 24500.00m),
+            new Product("PROD-004", "Switch Gerenciável Cisco Catalyst 1000 24 Portas Gigabit PoE+", 8, 4250.00m),
+            new Product("PROD-005", "Roteador Cisco Meraki MX68 Cloud Managed Security Appliance (Item para Teste de Concorrência)", 1, 6800.00m),
+            new Product("PROD-006", "Teclado e Mouse Sem Fio Logitech MX Keys Combo for Business", 30, 899.00m),
+            new Product("PROD-007", "Nobreak Senoidal APC Smart-UPS 2200VA 120V/230V com Painel LCD", 6, 5120.00m),
+            new Product("PROD-008", "Licença Anual Microsoft 365 Business Premium Corporativa", 50, 1380.00m)
+        };
+
+        await context.Products.AddRangeAsync(initialProducts);
+        await context.SaveChangesAsync();
     }
 }

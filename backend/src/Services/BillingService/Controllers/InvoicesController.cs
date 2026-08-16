@@ -72,4 +72,11 @@ public class InvoicesController : ControllerBase
         var report = await _aiAuditorService.GenerateAuditReportAsync(cancellationToken);
         return Ok(report);
     }
+
+    [HttpPost("reset-seed")]
+    public async Task<IActionResult> ResetSeed([FromServices] Infrastructure.BillingDbContext context)
+    {
+        await Infrastructure.DbInitializer.ResetAndSeedAsync(context);
+        return Ok(new { Success = true, Message = "Banco de dados de Faturamento limpo e repovoado com dataset corporativo com sucesso." });
+    }
 }

@@ -107,6 +107,13 @@ public class ProductsController : ControllerBase
         });
     }
 
+    [HttpPost("reset-seed")]
+    public async Task<IActionResult> ResetSeed([FromServices] Infrastructure.StockDbContext context)
+    {
+        await Infrastructure.DbInitializer.ResetAndSeedAsync(context);
+        return Ok(new { Success = true, Message = "Banco de dados de Estoque limpo e repovoado com dataset corporativo com sucesso." });
+    }
+
     private void CheckFaultSimulation()
     {
         if (_faultState.IsFaultSimulated)
