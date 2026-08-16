@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: korp_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: korp_user
+      POSTGRES_PASSWORD: korp_password
+      POSTGRES_DB: korp_stock_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U korp_user -d korp_stock_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - korp-network
+
+  stock-service:
+    build:
+      context: ./backend
+      dockerfile: src/Services/StockService/Dockerfile
+    container_name: korp_stock_service
+    restart: on-failure
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=korp_stock_db;Username=korp_user;Password=korp_password;
+    ports:
+      - "5001:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - korp-network
+
+  billing-service:
+    build:
+      context: ./backend
+      dockerfile: src/Services/BillingService/Dockerfile
+    container_name: korp_billing_service
+    restart: on-failure
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=korp_billing_db;Username=korp_user;Password=korp_password;
+      - StockService__BaseUrl=http://stock-service:8080
+    ports:
+      - "5002:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      stock-service:
+        condition: service_started
+    networks:
+      - korp-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: korp_frontend
+    restart: always
+    ports:
+      - "4200:80"
+    depends_on:
+      - stock-service
+      - billing-service
+    networks:
+      - korp-network
+
+networks:
+  korp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
