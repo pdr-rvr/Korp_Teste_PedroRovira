@@ -91,9 +91,31 @@ public class InvoiceService : IInvoiceService
             throw new ValidationException("Items", "A nota fiscal deve conter pelo menos um item.");
         }
 
-        var domainItems = dto.Items.Select(item =>
-            new InvoiceItem(item.ProductCode, item.ProductDescription, item.Quantity, item.UnitPrice)
-        ).ToList();
+        var domainItems = new List<InvoiceItem>();
+
+        foreach (var item in dto.Items)
+        {
+            if (item.Quantity <= 0)
+            {
+                throw new ValidationException("Quantity", $"A quantidade do produto '{item.ProductCode}' deve ser maior que zero.");
+            }
+
+            // Consultar o catálogo de produtos no StockService para validar existência e obter preço e descrição oficiais
+            var stockProduct = await _stockClient.GetProductByCodeAsync(item.ProductCode, cancellationToken);
+            if (stockProduct == null)
+            {
+                throw new NotFoundException($"Produto com código '{item.ProductCode}' não foi encontrado no estoque.");
+            }
+
+            // Validar se quantidade solicitada não ultrapassa o saldo disponível
+            if (item.Quantity > stockProduct.StockQuantity)
+            {
+                throw new ValidationException("Quantity", $"A quantidade solicitada ({item.Quantity}) para o produto '{stockProduct.Code}' excede o saldo disponível em estoque ({stockProduct.StockQuantity} un).");
+            }
+
+            // Usar descrição e preço unitário oficiais do estoque, prevenindo manipulação de payload
+            domainItems.Add(new InvoiceItem(stockProduct.Code, stockProduct.Description, item.Quantity, stockProduct.UnitPrice));
+        }
 
         var invoice = new Invoice(dto.CustomerName, dto.CustomerDocument, domainItems);
 
