@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { Invoice, InvoiceStatus } from '../../../core/models/invoice.model';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -11,7 +12,7 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
 @Component({
   selector: 'app-invoice-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ConfirmModalComponent],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, ConfirmModalComponent],
   template: `
     <div class="page-header">
       <div>
@@ -19,41 +20,56 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
         <p>Emissão, consulta e acompanhamento de status fiscal com baixa integrada de estoque.</p>
       </div>
 
-      <div>
-        <a routerLink="/notas-fiscais/nova" class="btn btn-primary">
-          <span>+ Nova Nota Fiscal</span>
-        </a>
-      </div>
+      <a routerLink="/notas-fiscais/nova" class="btn btn-primary">
+        <span>+ Nova Nota Fiscal</span>
+      </a>
     </div>
 
-    <!-- Filtros de Status -->
+    <!-- Filtros e Busca Reativa com RxJS -->
     <div class="card mb-4" style="margin-bottom: 1.5rem;">
-      <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <span style="font-weight: 600; font-size: 0.875rem; color: var(--text-secondary);">Filtrar por Status:</span>
-        <button
-          type="button"
-          class="btn btn-sm"
-          [ngClass]="selectedStatus === null ? 'btn-primary' : 'btn-outline'"
-          (click)="onFilterStatus(null)"
-        >
-          Todas
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          [ngClass]="selectedStatus === InvoiceStatus.Aberta ? 'btn-primary' : 'btn-outline'"
-          (click)="onFilterStatus(InvoiceStatus.Aberta)"
-        >
-          Abertas (Pendentes)
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          [ngClass]="selectedStatus === InvoiceStatus.Fechada ? 'btn-primary' : 'btn-outline'"
-          (click)="onFilterStatus(InvoiceStatus.Fechada)"
-        >
-          Fechadas (Concluídas)
-        </button>
+      <div class="filters-row">
+        <!-- Campo de Busca Reativo (RxJS debounceTime) -->
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Buscar por cliente, documento (CPF/CNPJ) ou nº da nota..."
+            [formControl]="searchControl"
+          />
+          @if (searchControl.value) {
+            <button type="button" class="search-clear" (click)="clearSearch()">✕</button>
+          }
+        </div>
+
+        <!-- Filtros Rápidos de Status -->
+        <div class="status-buttons">
+          <span class="filter-label">Status:</span>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [ngClass]="selectedStatus === null ? 'btn-primary' : 'btn-outline'"
+            (click)="onFilterStatus(null)"
+          >
+            Todas
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [ngClass]="selectedStatus === InvoiceStatus.Aberta ? 'btn-primary' : 'btn-outline'"
+            (click)="onFilterStatus(InvoiceStatus.Aberta)"
+          >
+            Abertas
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [ngClass]="selectedStatus === InvoiceStatus.Fechada ? 'btn-primary' : 'btn-outline'"
+            (click)="onFilterStatus(InvoiceStatus.Fechada)"
+          >
+            Fechadas
+          </button>
+        </div>
       </div>
     </div>
 
@@ -76,14 +92,14 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
             @if (invoices.length === 0) {
               <tr>
                 <td colspan="7" class="text-center py-5">
-                  <p>Nenhuma nota fiscal encontrada para o filtro selecionado.</p>
+                  <p>Nenhuma nota fiscal encontrada para os filtros informados.</p>
                 </td>
               </tr>
             } @else {
               @for (inv of invoices; track inv.id) {
                 <tr>
                   <td>
-                    <strong style="font-size: 1.05rem; font-family: monospace;">#{{ inv.number }}</strong>
+                    <strong style="font-size: 1.05rem; font-family: monospace; color: var(--primary-dark);">#{{ inv.number }}</strong>
                   </td>
                   <td>
                     {{ inv.issueDate | date:'dd/MM/yyyy HH:mm' }}
@@ -150,25 +166,100 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
         (cancelled)="invoiceToIssue = null"
       ></app-confirm-modal>
     }
-  `
+  `,
+  styles: [`
+    .filters-row {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.875rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      padding-left: 2.5rem;
+      padding-right: 2.25rem;
+      width: 100%;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+
+    .status-buttons {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-weight: 600;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-right: 0.25rem;
+    }
+  `]
 })
-export class InvoiceListComponent implements OnInit {
+export class InvoiceListComponent implements OnInit, OnDestroy {
   private invoiceService = inject(InvoiceService);
   private productService = inject(ProductService);
   private notificationService = inject(NotificationService);
+  private destroy$ = new Subject<void>();
 
   public invoices: Invoice[] = [];
   public selectedStatus: InvoiceStatus | null = null;
+  public searchControl = new FormControl('');
   public isIssuingId: string | null = null;
   public invoiceToIssue: Invoice | null = null;
   public InvoiceStatus = InvoiceStatus;
 
   public ngOnInit(): void {
     this.loadInvoices();
+
+    // Busca reativa com RxJS debounceTime
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.loadInvoices();
+    });
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   public loadInvoices(): void {
-    this.invoiceService.getInvoices(this.selectedStatus ?? undefined).subscribe(result => {
+    const search = this.searchControl.value || '';
+    this.invoiceService.getInvoices(this.selectedStatus ?? undefined, search).subscribe(result => {
       this.invoices = result.items;
     });
   }
@@ -176,6 +267,10 @@ export class InvoiceListComponent implements OnInit {
   public onFilterStatus(status: InvoiceStatus | null): void {
     this.selectedStatus = status;
     this.loadInvoices();
+  }
+
+  public clearSearch(): void {
+    this.searchControl.setValue('');
   }
 
   public openIssueConfirm(invoice: Invoice): void {
