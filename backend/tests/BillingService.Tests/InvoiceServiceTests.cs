@@ -52,7 +52,7 @@ public class InvoiceServiceTests
 
         var dto = new CreateInvoiceDto(
             "Empresa Beta Tech",
-            "98.765.432/0001-11",
+            "33.000.167/0001-01",
             new List<CreateInvoiceItemDto>
             {
                 new("PROD-001", "Notebook", 1, 3500m),
@@ -67,7 +67,7 @@ public class InvoiceServiceTests
         Assert.NotNull(result);
         Assert.Equal("Empresa Beta Tech", result.CustomerName);
         Assert.Equal(InvoiceStatus.Aberta, result.Status);
-        Assert.Equal(5500m, result.TotalAmount);
+        Assert.Equal(200m, result.TotalAmount); // Mock retorna 100m por item -> 1*100 + 2*100 = 200m (preço oficial)
         Assert.Equal(2, result.Items.Count);
     }
 
@@ -80,7 +80,7 @@ public class InvoiceServiceTests
         var service = new InvoiceService(context, mockStock, NullLogger<InvoiceService>.Instance);
 
         var items = new List<InvoiceItem> { new("PROD-001", "Notebook", 1, 3500m) };
-        var invoice = new Invoice("Cliente Teste", "123", items);
+        var invoice = new Invoice("Cliente Teste", "33.000.167/0001-01", items);
         await context.Invoices.AddAsync(invoice);
         await context.SaveChangesAsync();
 
@@ -105,7 +105,7 @@ public class InvoiceServiceTests
         var service = new InvoiceService(context, mockStock, NullLogger<InvoiceService>.Instance);
 
         var items = new List<InvoiceItem> { new("PROD-001", "Notebook", 10, 3500m) };
-        var invoice = new Invoice("Cliente Teste", "123", items);
+        var invoice = new Invoice("Cliente Teste", "33.000.167/0001-01", items);
         await context.Invoices.AddAsync(invoice);
         await context.SaveChangesAsync();
 
@@ -113,7 +113,25 @@ public class InvoiceServiceTests
         await Assert.ThrowsAsync<BusinessRuleException>(() => service.IssueInvoiceAsync(invoice.Id));
 
         var notUpdated = await context.Invoices.FirstAsync(i => i.Id == invoice.Id);
-        Assert.Equal(InvoiceStatus.Aberta, notUpdated.Status); // Permanece aberta
+        Assert.Equal(InvoiceStatus.Aberta, notUpdated.Status);
         Assert.Null(notUpdated.IssuedAt);
+    }
+
+    [Fact]
+    public async Task IssueInvoiceAsync_WhenAlreadyClosed_ShouldThrowBusinessRuleException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var mockStock = new MockStockServiceClient();
+        var service = new InvoiceService(context, mockStock, NullLogger<InvoiceService>.Instance);
+
+        var items = new List<InvoiceItem> { new("PROD-001", "Notebook", 1, 3500m) };
+        var invoice = new Invoice("Cliente Teste", "33.000.167/0001-01", items);
+        invoice.CloseAndIssue();
+        await context.Invoices.AddAsync(invoice);
+        await context.SaveChangesAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.IssueInvoiceAsync(invoice.Id));
     }
 }

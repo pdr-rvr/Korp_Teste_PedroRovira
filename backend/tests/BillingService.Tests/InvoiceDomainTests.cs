@@ -9,7 +9,7 @@ public class InvoiceDomainTests
     [Fact]
     public void CreateInvoice_WithValidData_ShouldInitializeWithOpenStatusAndCorrectTotals()
     {
-        // Arrange
+        // Arrange (CNPJ válido: 33.000.167/0001-01)
         var items = new List<InvoiceItem>
         {
             new("PROD-1", "Notebook", 2, 3000.00m), // 6000
@@ -17,7 +17,7 @@ public class InvoiceDomainTests
         };
 
         // Act
-        var invoice = new Invoice("Empresa Teste", "12.345.678/0001-00", items);
+        var invoice = new Invoice("Empresa Teste", "33.000.167/0001-01", items);
 
         // Assert
         Assert.NotEqual(Guid.Empty, invoice.Id);
@@ -32,7 +32,14 @@ public class InvoiceDomainTests
     public void CreateInvoice_WithoutItems_ShouldThrowValidationException()
     {
         // Act & Assert
-        Assert.Throws<ValidationException>(() => new Invoice("Cliente", "123", new List<InvoiceItem>()));
+        Assert.Throws<ValidationException>(() => new Invoice("Cliente", "33.000.167/0001-01", new List<InvoiceItem>()));
+    }
+
+    [Fact]
+    public void CreateInvoice_WithEmptyCustomerName_ShouldThrowValidationException()
+    {
+        var items = new List<InvoiceItem> { new("PROD-1", "Item", 1, 50m) };
+        Assert.Throws<ValidationException>(() => new Invoice("", "33.000.167/0001-01", items));
     }
 
     [Fact]
@@ -53,8 +60,8 @@ public class InvoiceDomainTests
         // Arrange
         var items = new List<InvoiceItem> { new("PROD-1", "Item", 1, 50m) };
 
-        // Act & Assert (CNPJ válido padrão Viasoft/Alpha)
-        var invoice = new Invoice("Cliente", "12.345.678/0001-90", items);
+        // Act & Assert (CNPJ válido padrão Viasoft/Petrobras)
+        var invoice = new Invoice("Cliente", "33.000.167/0001-01", items);
         Assert.NotNull(invoice);
     }
 
@@ -63,7 +70,7 @@ public class InvoiceDomainTests
     {
         // Arrange
         var items = new List<InvoiceItem> { new("PROD-1", "Item", 1, 50m) };
-        var invoice = new Invoice("Cliente", "123", items);
+        var invoice = new Invoice("Cliente", "33.000.167/0001-01", items);
 
         // Act
         invoice.CloseAndIssue();
@@ -78,7 +85,7 @@ public class InvoiceDomainTests
     {
         // Arrange
         var items = new List<InvoiceItem> { new("PROD-1", "Item", 1, 50m) };
-        var invoice = new Invoice("Cliente", "123", items);
+        var invoice = new Invoice("Cliente", "33.000.167/0001-01", items);
         invoice.CloseAndIssue(); // Primeira emissão
 
         // Act & Assert
