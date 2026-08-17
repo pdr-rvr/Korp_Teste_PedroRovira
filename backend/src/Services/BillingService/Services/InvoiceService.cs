@@ -50,8 +50,8 @@ public class InvoiceService : IInvoiceService
         {
             var cleanSearch = search.Trim().ToLower();
             query = query.Where(i =>
-                i.CustomerName.ToLower().Contains(cleanSearch) ||
-                i.CustomerDocument.ToLower().Contains(cleanSearch) ||
+                (!string.IsNullOrEmpty(i.CustomerName) && i.CustomerName.ToLower().Contains(cleanSearch)) ||
+                (!string.IsNullOrEmpty(i.CustomerDocument) && i.CustomerDocument.ToLower().Contains(cleanSearch)) ||
                 i.Number.ToString().Contains(cleanSearch));
         }
 

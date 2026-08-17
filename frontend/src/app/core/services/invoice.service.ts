@@ -44,9 +44,7 @@ export class InvoiceService {
   }
 
   public createInvoice(request: CreateInvoiceRequest): Observable<Invoice> {
-    return this.http.post<Invoice>(this.apiUrl, request).pipe(
-      tap(() => this.getInvoices().subscribe())
-    );
+    return this.http.post<Invoice>(this.apiUrl, request);
   }
 
   public issueInvoice(id: string): Observable<IssueInvoiceResponse> {
@@ -54,8 +52,6 @@ export class InvoiceService {
     const idempotencyKey = crypto.randomUUID();
     const headers = new HttpHeaders().set('X-Idempotency-Key', idempotencyKey);
 
-    return this.http.post<IssueInvoiceResponse>(`${this.apiUrl}/${id}/issue`, {}, { headers }).pipe(
-      tap(() => this.getInvoices().subscribe())
-    );
+    return this.http.post<IssueInvoiceResponse>(`${this.apiUrl}/${id}/issue`, {}, { headers });
   }
 }

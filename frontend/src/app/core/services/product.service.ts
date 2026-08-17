@@ -45,20 +45,14 @@ export class ProductService {
   }
 
   public createProduct(request: CreateProductRequest): Observable<Product> {
-    return this.http.post<Product>(this.apiUrl, request).pipe(
-      tap(() => this.getProducts().subscribe())
-    );
+    return this.http.post<Product>(this.apiUrl, request);
   }
 
   public updateProduct(id: string, request: UpdateProductRequest): Observable<Product> {
-    return this.http.put<Product>(`${this.apiUrl}/${id}`, request).pipe(
-      tap(() => this.getProducts().subscribe())
-    );
+    return this.http.put<Product>(`${this.apiUrl}/${id}`, request);
   }
 
   public deductStock(request: DeductStockRequest): Observable<DeductStockResponse> {
-    return this.http.post<DeductStockResponse>(`${this.apiUrl}/deduct`, request).pipe(
-      tap(() => this.getProducts().subscribe())
-    );
+    return this.http.post<DeductStockResponse>(`${this.apiUrl}/deduct`, request);
   }
 }

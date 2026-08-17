@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs';
 import { Invoice, InvoiceStatus } from '../../../core/models/invoice.model';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -281,12 +281,14 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
   public ngOnInit(): void {
     this.loadInvoices();
 
+    // Busca reativa com switchMap eliminando condições de corrida
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
+      switchMap(search => this.invoiceService.getInvoices(this.selectedStatus ?? undefined, search || '')),
       takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.loadInvoices();
+    ).subscribe(result => {
+      this.invoices = result.items;
     });
   }
 

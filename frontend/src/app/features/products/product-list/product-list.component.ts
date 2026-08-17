@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs';
 import { Product } from '../../../core/models/product.model';
 import { ProductService } from '../../../core/services/product.service';
 import { ProductModalComponent } from '../product-modal/product-modal.component';
@@ -181,15 +181,14 @@ export class ProductListComponent implements OnInit, OnDestroy {
   public ngOnInit(): void {
     this.loadProducts();
 
-    // Busca reativa com RxJS debounceTime(300) e distinctUntilChanged()
+    // Busca reativa limpa com switchMap (cancela requisições anteriores em trânsito)
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
+      switchMap(term => this.productService.getProducts(term || '', 1, 50)),
       takeUntil(this.destroy$)
-    ).subscribe(term => {
-      this.productService.getProducts(term || '', 1, 50).subscribe(result => {
-        this.products = result.items;
-      });
+    ).subscribe(result => {
+      this.products = result.items;
     });
   }
 
