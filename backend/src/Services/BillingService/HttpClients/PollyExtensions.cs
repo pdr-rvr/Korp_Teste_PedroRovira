@@ -8,7 +8,7 @@ public static class PollyExtensions
 {
     public static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(ILogger logger)
     {
-        // Política de Retry com Backoff Exponencial + Jitter
+        // Política de Retry com Backoff Exponencial + Jitter (1s, 2s, 4s)
         return HttpPolicyExtensions
             .HandleTransientHttpError()
             .OrResult(msg => msg.StatusCode == HttpStatusCode.ServiceUnavailable || msg.StatusCode == HttpStatusCode.GatewayTimeout)
@@ -16,13 +16,13 @@ public static class PollyExtensions
                 retryCount: 3,
                 sleepDurationProvider: retryAttempt =>
                 {
-                    var baseDelay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
-                    var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 500));
+                    var baseDelay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1));
+                    var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 300));
                     return baseDelay + jitter;
                 },
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
-                    logger.LogWarning("Polly Retry [{Attempt}/3] acionado após {Delay}s devido a: {Reason}",
+                    logger.LogWarning("Polly Retry [{Attempt}/3] acionado após {Delay:F2}s devido a: {Reason}",
                         retryAttempt,
                         timespan.TotalSeconds,
                         outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString());

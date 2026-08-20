@@ -47,4 +47,10 @@ public class InMemoryIdempotencyStore : IIdempotencyStore
         _locks[key] = now.Add(lockDuration);
         return Task.FromResult(true);
     }
+
+    public Task ReleaseLockAsync(string key, CancellationToken cancellationToken = default)
+    {
+        _locks.TryRemove(key, out _);
+        return Task.CompletedTask;
+    }
 }

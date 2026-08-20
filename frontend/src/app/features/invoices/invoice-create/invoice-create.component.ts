@@ -366,10 +366,21 @@ export class InvoiceCreateComponent implements OnInit {
   }
 
   public ngOnInit(): void {
-    this.productService.getProducts('', 1, 100).subscribe(result => {
-      this.availableProducts = result.items;
-      if (this.items.length === 0) {
-        this.addItem();
+    this.loadCatalog();
+  }
+
+  public loadCatalog(): void {
+    this.productService.getProducts('', 1, 100).subscribe({
+      next: (result) => {
+        this.availableProducts = result.items;
+        if (this.items.length === 0) {
+          this.addItem();
+        }
+      },
+      error: () => {
+        if (this.items.length === 0) {
+          this.addItem();
+        }
       }
     });
   }

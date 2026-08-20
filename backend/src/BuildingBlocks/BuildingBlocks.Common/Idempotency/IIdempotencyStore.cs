@@ -14,4 +14,5 @@ public interface IIdempotencyStore
     Task<IdempotencyRecord?> GetAsync(string key, CancellationToken cancellationToken = default);
     Task SetAsync(string key, int statusCode, string responseBody, string contentType, TimeSpan ttl, CancellationToken cancellationToken = default);
     Task<bool> TryAcquireLockAsync(string key, TimeSpan lockDuration, CancellationToken cancellationToken = default);
+    Task ReleaseLockAsync(string key, CancellationToken cancellationToken = default);
 }

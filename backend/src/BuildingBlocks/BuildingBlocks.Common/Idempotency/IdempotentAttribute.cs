@@ -62,13 +62,30 @@ public class IdempotentAttribute : Attribute, IAsyncActionFilter
             return;
         }
 
-        var executedContext = await next();
-
-        // Se a execução foi bem-sucedida (status 2xx ou 3xx), salvar resposta
-        if (executedContext.Result is ObjectResult objectResult && objectResult.StatusCode is >= 200 and < 400)
+        try
         {
-            var responseBody = System.Text.Json.JsonSerializer.Serialize(objectResult.Value);
-            await store.SetAsync(key, objectResult.StatusCode.Value, responseBody, "application/json", TimeSpan.FromSeconds(_ttlSeconds), httpContext.RequestAborted);
+            var executedContext = await next();
+
+            // Se a execução foi bem-sucedida (status 2xx ou 3xx), salvar resposta
+            if (executedContext.Result is ObjectResult objectResult)
+            {
+                var statusCode = objectResult.StatusCode ?? StatusCodes.Status200OK;
+                if (statusCode is >= 200 and < 400)
+                {
+                    var responseBody = System.Text.Json.JsonSerializer.Serialize(objectResult.Value);
+                    await store.SetAsync(key, statusCode, responseBody, "application/json", TimeSpan.FromSeconds(_ttlSeconds), httpContext.RequestAborted);
+                    return;
+                }
+            }
+
+            // Se não foi bem-sucedido ou gerou erro, libera o lock para permitir reenvios corrigidos
+            await store.ReleaseLockAsync(key, httpContext.RequestAborted);
+        }
+        catch
+        {
+            // Em caso de exceção durante a execução da action, libera o lock
+            await store.ReleaseLockAsync(key, httpContext.RequestAborted);
+            throw;
         }
     }
 }

@@ -26,7 +26,7 @@ var stockServiceUrl = builder.Configuration.GetValue<string>("StockService:BaseU
 builder.Services.AddHttpClient<IStockServiceClient, StockServiceClient>(client =>
 {
     client.BaseAddress = new Uri(stockServiceUrl);
-    client.Timeout = TimeSpan.FromSeconds(10);
+    client.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddPolicyHandler((sp, request) =>
 {
